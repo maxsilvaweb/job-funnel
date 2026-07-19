@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { LayoutDashboard, Table2, Kanban, Target } from 'lucide-react';
+import { LayoutDashboard, Table2, Target } from 'lucide-react';
 
 const navItems = [
   {
@@ -17,11 +17,6 @@ const navItems = [
     href: '/applications',
     label: 'Applications',
     icon: Table2,
-  },
-  {
-    href: '/applications?view=kanban',
-    label: 'Kanban',
-    icon: Kanban,
   },
 ];
 
