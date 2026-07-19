@@ -5,8 +5,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { LayoutDashboard, Table2, Target } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Table2,
+  Kanban,
+  Target,
+  Settings,
+} from 'lucide-react';
 
+// Update navItems
 const navItems = [
   {
     href: '/dashboard',
@@ -17,6 +24,16 @@ const navItems = [
     href: '/applications',
     label: 'Applications',
     icon: Table2,
+  },
+  {
+    href: '/applications?view=kanban',
+    label: 'Kanban',
+    icon: Kanban,
+  },
+  {
+    href: '/preferences',
+    label: 'Preferences',
+    icon: Settings,
   },
 ];
 
