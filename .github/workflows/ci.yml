@@ -22,7 +22,7 @@ jobs:
           bun-version: latest
       - run: bun install
       - run: bunx tsc --noEmit
-      - run: bunx next lint
+      - run: bun run lint
 
   build:
     runs-on: ubuntu-latest
