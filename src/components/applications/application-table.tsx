@@ -184,7 +184,31 @@ export function ApplicationTable() {
                   {formatDate(app.date_applied)}
                 </td>
                 <td className="px-4 py-3 text-xs">
-                  {app.salary_max ? (
+                  {app.employment_type === 'contract' ? (
+                    app.day_rate ? (
+                      <div className="space-y-0.5">
+                        <span className="text-emerald-600 font-medium">
+                          £{app.day_rate.toLocaleString()}/day
+                        </span>
+                        {app.ir35_status &&
+                          app.ir35_status !== 'undetermined' && (
+                            <span
+                              className={`block text-[10px] font-medium ${
+                                app.ir35_status === 'outside'
+                                  ? 'text-emerald-600'
+                                  : 'text-amber-600'
+                              }`}
+                            >
+                              {app.ir35_status === 'outside'
+                                ? 'Outside IR35'
+                                : 'Inside IR35'}
+                            </span>
+                          )}
+                      </div>
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    )
+                  ) : app.salary_max ? (
                     <span className="text-emerald-600 font-medium">
                       {app.salary_currency}{' '}
                       {app.salary_min?.toLocaleString() ?? '?'}–

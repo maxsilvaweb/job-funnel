@@ -8,7 +8,12 @@ import { SOURCE_LABELS } from '@/lib/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { Application } from '@/types';
-import type { ApplicationSource, ApplicationStatus } from '@/types';
+import type {
+  ApplicationSource,
+  ApplicationStatus,
+  EmploymentType,
+  IR35Status,
+} from '@/types';
 
 interface ApplicationFormProps {
   application?: Application;
@@ -27,13 +32,19 @@ export function ApplicationForm({
     defaultValues: {
       company: application?.company ?? '',
       role: application?.role ?? '',
+      employment_type: (application?.employment_type ??
+        'permanent') as EmploymentType,
       source: (application?.source ?? 'linkedin') as ApplicationSource,
       status: (application?.status ?? 'applied') as ApplicationStatus,
       date_applied:
         application?.date_applied ?? new Date().toISOString().split('T')[0],
+      // Permanent
       salary_min: application?.salary_min ?? null,
       salary_max: application?.salary_max ?? null,
       salary_currency: application?.salary_currency ?? 'GBP',
+      // Contract
+      day_rate: application?.day_rate ?? null,
+      ir35_status: (application?.ir35_status ?? 'undetermined') as IR35Status,
       location: application?.location ?? '',
       remote: application?.remote ?? false,
       job_url: application?.job_url ?? '',
@@ -130,6 +141,157 @@ export function ApplicationForm({
         </form.Field>
       </div>
 
+      {/* Employment Type Toggle */}
+      <form.Field name="employment_type">
+        {(field) => (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+              Employment Type
+            </label>
+            <div className="flex rounded-lg border border-zinc-200 w-fit">
+              <button
+                type="button"
+                onClick={() => field.handleChange('permanent')}
+                className={`px-4 py-2 text-sm font-medium rounded-l-lg transition-colors ${
+                  field.state.value === 'permanent'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Permanent
+              </button>
+              <button
+                type="button"
+                onClick={() => field.handleChange('contract')}
+                className={`px-4 py-2 text-sm font-medium rounded-r-lg transition-colors ${
+                  field.state.value === 'contract'
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+              >
+                Contract
+              </button>
+            </div>
+          </div>
+        )}
+      </form.Field>
+
+      {/* Conditional salary / day rate fields */}
+      <form.Subscribe selector={(state) => state.values.employment_type}>
+        {(employmentType) =>
+          employmentType === 'permanent' ? (
+            /* Permanent — salary fields */
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <form.Field name="salary_min">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      Salary Min
+                    </label>
+                    <input
+                      type="number"
+                      value={field.state.value ?? ''}
+                      onChange={(e) =>
+                        field.handleChange(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      placeholder="60000"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="salary_max">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      Salary Max
+                    </label>
+                    <input
+                      type="number"
+                      value={field.state.value ?? ''}
+                      onChange={(e) =>
+                        field.handleChange(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      placeholder="85000"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="salary_currency">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      Currency
+                    </label>
+                    <select
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="GBP">GBP £</option>
+                      <option value="USD">USD $</option>
+                      <option value="EUR">EUR €</option>
+                    </select>
+                  </div>
+                )}
+              </form.Field>
+            </div>
+          ) : (
+            /* Contract — day rate + IR35 fields */
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <form.Field name="day_rate">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      Day Rate (£)
+                    </label>
+                    <input
+                      type="number"
+                      value={field.state.value ?? ''}
+                      onChange={(e) =>
+                        field.handleChange(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      placeholder="500"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="ir35_status">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      IR35 Status
+                    </label>
+                    <select
+                      value={field.state.value ?? 'undetermined'}
+                      onChange={(e) =>
+                        field.handleChange(e.target.value as IR35Status)
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="undetermined">Undetermined</option>
+                      <option value="outside">Outside IR35</option>
+                      <option value="inside">Inside IR35</option>
+                    </select>
+                  </div>
+                )}
+              </form.Field>
+            </div>
+          )
+        }
+      </form.Subscribe>
+
       {/* Source and Date */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <form.Field name="source">
@@ -167,70 +329,6 @@ export function ApplicationForm({
                 onChange={(e) => field.handleChange(e.target.value)}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
-            </div>
-          )}
-        </form.Field>
-      </div>
-
-      {/* Salary */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <form.Field name="salary_min">
-          {(field) => (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                Salary Min
-              </label>
-              <input
-                type="number"
-                value={field.state.value ?? ''}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
-                placeholder="60000"
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          )}
-        </form.Field>
-
-        <form.Field name="salary_max">
-          {(field) => (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                Salary Max
-              </label>
-              <input
-                type="number"
-                value={field.state.value ?? ''}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
-                placeholder="85000"
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          )}
-        </form.Field>
-
-        <form.Field name="salary_currency">
-          {(field) => (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                Currency
-              </label>
-              <select
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              >
-                <option value="GBP">GBP £</option>
-                <option value="USD">USD $</option>
-                <option value="EUR">EUR €</option>
-              </select>
             </div>
           )}
         </form.Field>
@@ -376,7 +474,7 @@ export function ApplicationForm({
       </form.Field>
 
       {/* Submit */}
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end">
         <button
           type="submit"
           disabled={submitting}

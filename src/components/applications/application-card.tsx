@@ -81,14 +81,36 @@ export function ApplicationCard({
         </div>
       )}
 
-      {/* Salary */}
-      {application.salary_max && (
-        <p className="mt-1 text-[10px] font-medium text-emerald-600">
-          {application.salary_currency}{' '}
-          {application.salary_min?.toLocaleString() ?? '?'}–
-          {application.salary_max.toLocaleString()}
-        </p>
-      )}
+      {/* Salary / Day Rate */}
+      {application.employment_type === 'contract'
+        ? application.day_rate && (
+            <div className="mt-1 flex items-center gap-1.5">
+              <p className="text-[10px] font-medium text-emerald-600">
+                £{application.day_rate.toLocaleString()}/day
+              </p>
+              {application.ir35_status &&
+                application.ir35_status !== 'undetermined' && (
+                  <span
+                    className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${
+                      application.ir35_status === 'outside'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}
+                  >
+                    {application.ir35_status === 'outside'
+                      ? 'Outside IR35'
+                      : 'Inside IR35'}
+                  </span>
+                )}
+            </div>
+          )
+        : application.salary_max && (
+            <p className="mt-1 text-[10px] font-medium text-emerald-600">
+              {application.salary_currency}{' '}
+              {application.salary_min?.toLocaleString() ?? '?'}–
+              {application.salary_max.toLocaleString()}
+            </p>
+          )}
 
       {/* Bottom row — time ago + priority + external link */}
       <div className="mt-2 flex items-center justify-between">

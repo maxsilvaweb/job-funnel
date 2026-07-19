@@ -5,6 +5,7 @@ import { z } from 'zod';
 export const applicationSchema = z.object({
   company: z.string().min(1, 'Company name is required').max(200),
   role: z.string().min(1, 'Role is required').max(200),
+  employment_type: z.enum(['permanent', 'contract']).default('permanent'),
   source: z.enum([
     'linkedin',
     'indeed',
@@ -32,9 +33,16 @@ export const applicationSchema = z.object({
     ])
     .default('applied'),
   date_applied: z.string().min(1, 'Date is required'),
+  // Permanent
   salary_min: z.number().nullable().optional(),
   salary_max: z.number().nullable().optional(),
   salary_currency: z.string().default('GBP'),
+  // Contract
+  day_rate: z.number().nullable().optional(),
+  ir35_status: z
+    .enum(['inside', 'outside', 'undetermined'])
+    .nullable()
+    .optional(),
   location: z.string().nullable().optional(),
   remote: z.boolean().default(false),
   job_url: z.string().url().nullable().optional().or(z.literal('')),
