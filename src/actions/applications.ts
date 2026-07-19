@@ -143,9 +143,11 @@ export async function updateApplication(
 
   if (!user) redirect('/auth/login');
 
+  const validated = applicationSchema.parse(formData);
+
   const { data, error } = await supabase
     .from('applications')
-    .update(formData)
+    .update(validated)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()

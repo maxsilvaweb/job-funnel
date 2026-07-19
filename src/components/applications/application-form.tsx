@@ -7,6 +7,7 @@ import { createApplication, updateApplication } from '@/actions/applications';
 import { SOURCE_LABELS } from '@/lib/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useToast } from '@/lib/hooks/use-toast';
 import type { Application } from '@/types';
 import type {
   ApplicationSource,
@@ -27,6 +28,7 @@ export function ApplicationForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const form = useForm({
     defaultValues: {
@@ -64,13 +66,31 @@ export function ApplicationForm({
 
         if (result.error) {
           setError(result.error);
+          toast({
+            title: application ? 'Could not update application' : 'Could not add application',
+            description: result.error,
+            variant: 'error',
+          });
           return;
         }
 
         queryClient.invalidateQueries({ queryKey: ['applications'] });
+        toast({
+          title: application ? 'Application updated' : 'Application added',
+          description: application
+            ? `${value.company} has been updated.`
+            : `${value.company} has been added to your funnel.`,
+          variant: 'success',
+        });
         onSuccess?.();
       } catch {
-        setError('Something went wrong. Please try again.');
+        const message = 'Something went wrong. Please try again.';
+        setError(message);
+        toast({
+          title: application ? 'Could not update application' : 'Could not add application',
+          description: message,
+          variant: 'error',
+        });
       } finally {
         setSubmitting(false);
       }
@@ -186,10 +206,12 @@ export function ApplicationForm({
                 {(field) => (
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                      Salary Min
+                      Salary Min *
                     </label>
                     <input
                       type="number"
+                      min={0}
+                      required
                       value={field.state.value ?? ''}
                       onChange={(e) =>
                         field.handleChange(
@@ -207,10 +229,12 @@ export function ApplicationForm({
                 {(field) => (
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                      Salary Max
+                      Salary Max *
                     </label>
                     <input
                       type="number"
+                      min={0}
+                      required
                       value={field.state.value ?? ''}
                       onChange={(e) =>
                         field.handleChange(
@@ -250,10 +274,12 @@ export function ApplicationForm({
                 {(field) => (
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                      Day Rate (£)
+                      Day Rate (£) *
                     </label>
                     <input
                       type="number"
+                      min={0}
+                      required
                       value={field.state.value ?? ''}
                       onChange={(e) =>
                         field.handleChange(

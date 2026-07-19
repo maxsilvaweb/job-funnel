@@ -10,11 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { STAGE_LABELS, SOURCE_LABELS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils/dates';
-import { ExternalLink, Trash2, ArrowUpDown, Loader2 } from 'lucide-react';
+import { ExternalLink, Pencil, Trash2, ArrowUpDown, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import type { Application } from '@/types';
+import { useToast } from '@/lib/hooks/use-toast';
 
 type SortField = 'company' | 'date_applied' | 'status' | 'priority';
 type SortDirection = 'asc' | 'desc';
@@ -56,6 +57,7 @@ export function ApplicationTable() {
   const [sortField, setSortField] = useState<SortField>('date_applied');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   function handleSort(field: SortField) {
     if (sortField === field) {
@@ -66,13 +68,27 @@ export function ApplicationTable() {
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, company: string) {
     if (!confirm('Delete this application? This cannot be undone.')) {
       return;
     }
     setDeletingId(id);
-    await deleteApp.mutateAsync(id);
-    setDeletingId(null);
+    try {
+      await deleteApp.mutateAsync(id);
+      toast({
+        title: 'Application deleted',
+        description: `${company} has been removed from your funnel.`,
+        variant: 'success',
+      });
+    } catch {
+      toast({
+        title: 'Could not delete application',
+        description: 'Something went wrong. Please try again.',
+        variant: 'error',
+      });
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const sorted = [...(applications || [])].sort(
@@ -148,6 +164,7 @@ export function ApplicationTable() {
                 </SortButton>
               </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Salary</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">IR35</th>
               <th className="px-4 py-3 font-medium">
                 <SortButton
                   field="priority"
@@ -186,25 +203,9 @@ export function ApplicationTable() {
                 <td className="px-4 py-3 text-xs">
                   {app.employment_type === 'contract' ? (
                     app.day_rate ? (
-                      <div className="space-y-0.5">
-                        <span className="text-emerald-600 font-medium">
-                          £{app.day_rate.toLocaleString()}/day
-                        </span>
-                        {app.ir35_status &&
-                          app.ir35_status !== 'undetermined' && (
-                            <span
-                              className={`block text-[10px] font-medium ${
-                                app.ir35_status === 'outside'
-                                  ? 'text-emerald-600'
-                                  : 'text-amber-600'
-                              }`}
-                            >
-                              {app.ir35_status === 'outside'
-                                ? 'Outside IR35'
-                                : 'Inside IR35'}
-                            </span>
-                          )}
-                      </div>
+                      <span className="text-emerald-600 font-medium">
+                        £{app.day_rate.toLocaleString()}/day
+                      </span>
                     ) : (
                       <span className="text-zinc-400">—</span>
                     )
@@ -214,6 +215,19 @@ export function ApplicationTable() {
                       {app.salary_min?.toLocaleString() ?? '?'}–
                       {app.salary_max.toLocaleString()}
                     </span>
+                  ) : (
+                    <span className="text-zinc-400">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {app.employment_type === 'contract' ? (
+                    app.ir35_status === 'inside' ? (
+                      <span className="font-medium text-amber-600">Inside IR35</span>
+                    ) : app.ir35_status === 'outside' ? (
+                      <span className="font-medium text-emerald-600">Outside IR35</span>
+                    ) : (
+                      <span className="text-zinc-400">Undetermined</span>
+                    )
                   ) : (
                     <span className="text-zinc-400">—</span>
                   )}
@@ -229,6 +243,14 @@ export function ApplicationTable() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
+                    <Link
+                      href={`/applications/${app.id}/edit`}
+                      className="text-zinc-400 transition-colors hover:text-indigo-500"
+                      aria-label={`Edit ${app.company}`}
+                      title="Edit application"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Link>
                     {app.job_url && (
                       <a
                         href={app.job_url}
@@ -240,7 +262,7 @@ export function ApplicationTable() {
                       </a>
                     )}
                     <button
-                      onClick={() => handleDelete(app.id)}
+                      onClick={() => handleDelete(app.id, app.company)}
                       disabled={deletingId === app.id}
                       className="text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
                     >

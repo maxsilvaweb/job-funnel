@@ -34,11 +34,11 @@ export const applicationSchema = z.object({
     .default('applied'),
   date_applied: z.string().min(1, 'Date is required'),
   // Permanent
-  salary_min: z.number().nullable().optional(),
-  salary_max: z.number().nullable().optional(),
+  salary_min: z.number().nonnegative().nullable().optional(),
+  salary_max: z.number().nonnegative().nullable().optional(),
   salary_currency: z.string().default('GBP'),
   // Contract
-  day_rate: z.number().nullable().optional(),
+  day_rate: z.number().nonnegative().nullable().optional(),
   ir35_status: z
     .enum(['inside', 'outside', 'undetermined'])
     .nullable()
@@ -50,6 +50,44 @@ export const applicationSchema = z.object({
   contact_email: z.string().email().nullable().optional().or(z.literal('')),
   notes: z.string().nullable().optional(),
   priority: z.number().min(0).max(5).default(0),
+}).superRefine((data, ctx) => {
+  if (data.employment_type === 'permanent') {
+    if (data.salary_min == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['salary_min'],
+        message: 'Salary minimum is required for permanent roles',
+      });
+    }
+
+    if (data.salary_max == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['salary_max'],
+        message: 'Salary maximum is required for permanent roles',
+      });
+    }
+
+    if (
+      data.salary_min != null &&
+      data.salary_max != null &&
+      data.salary_max < data.salary_min
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['salary_max'],
+        message: 'Salary maximum must be at least the salary minimum',
+      });
+    }
+  }
+
+  if (data.employment_type === 'contract' && data.day_rate == null) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['day_rate'],
+      message: 'Day rate is required for contract roles',
+    });
+  }
 });
 
 export type ApplicationFormData = z.infer<typeof applicationSchema>;
