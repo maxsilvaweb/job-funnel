@@ -14,9 +14,8 @@ export const metadata: Metadata = {
 
 const themeScript = `
   try {
-    if (localStorage.getItem('job-funnel-theme') === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
+    const theme = localStorage.getItem('job-funnel-theme');
+    if (theme === 'dark') document.documentElement.classList.add(theme);
   } catch {}
 `;
 

@@ -29,7 +29,27 @@ html.dark {
   --color-zinc-900: #fafafa;
 }
 
+:root {
+  color-scheme: light;
+  --color-zinc-50: #f5fbf6;
+  --color-zinc-100: #e6f4ea;
+  --color-zinc-200: #c6e2cc;
+  --color-zinc-300: #9cc9aa;
+  --color-zinc-400: #5c9070;
+  --color-zinc-500: #44755a;
+  --color-zinc-600: #315842;
+  --color-zinc-700: #23432f;
+  --color-zinc-900: #123020;
+}
+
 @layer utilities {
+  .bg-indigo-50 { background-color: #dcfce7; }
+  .text-indigo-600 { color: #15803d; }
+  .text-indigo-700 { color: #166534; }
+  button.bg-indigo-600 { background-color: #15803d; }
+  button.hover\:bg-indigo-700:hover { background-color: #166534; }
+  .hover\:bg-zinc-50:hover,
+  .hover\:bg-zinc-100:hover { background-color: #d6eddb; }
   .dark .bg-white { background-color: #18181b; }
   .dark .bg-indigo-50 { background-color: #1e1b4b; }
   .dark .bg-indigo-100 { background-color: #312e81; }
