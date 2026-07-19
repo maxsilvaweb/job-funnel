@@ -1,7 +1,7 @@
 // src/components/layout/header.tsx
 
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { signOut } from '@/lib/actions/auth';
 
 export async function Header() {
   const supabase = await createClient();
@@ -9,13 +9,6 @@ export async function Header() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  async function signOut() {
-    'use server';
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    redirect('/auth/login');
-  }
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-6">
