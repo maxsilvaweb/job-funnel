@@ -13,8 +13,6 @@ export type ApplicationStatus =
   | 'ghosted'
   | 'withdrawn';
 
-// Rest stays the same...
-
 export type ApplicationSource =
   | 'linkedin'
   | 'indeed'
@@ -38,6 +36,10 @@ export type EmploymentType = 'permanent' | 'contract';
 
 export type IR35Status = 'inside' | 'outside' | 'undetermined';
 
+export type IR35Preference = 'inside' | 'outside' | 'both';
+
+export type WorkMode = 'remote' | 'hybrid' | 'onsite';
+
 export interface Application {
   id: string;
   user_id: string;
@@ -47,12 +49,11 @@ export interface Application {
   status: ApplicationStatus;
   employment_type: EmploymentType;
   date_applied: string;
-  // Permanent fields
   salary_min: number | null;
   salary_max: number | null;
   salary_currency: string;
-  // Contract fields
-  day_rate: number | null;
+  day_rate_min: number | null;
+  day_rate_max: number | null;
   ir35_status: IR35Status | null;
   location: string | null;
   remote: boolean;
@@ -61,6 +62,8 @@ export interface Application {
   contact_email: string | null;
   notes: string | null;
   priority: number;
+  ai_score: number | null;
+  ai_reasoning: string | null;
   created_at: string;
   updated_at: string;
   stages?: Stage[];
@@ -123,4 +126,22 @@ export interface Diagnosis {
   severity: 'good' | 'warning' | 'critical';
   message: string;
   suggestion: string;
+}
+
+export interface UserPreferences {
+  id: string;
+  user_id: string;
+  target_roles: string[];
+  target_keywords: string[];
+  employment_types: string[];
+  min_ai_score: number;
+  ir35_preference: IR35Preference;
+  notify_email: boolean;
+  notify_email_address: string | null;
+  automation_enabled: boolean;
+  resume_text: string;
+  preferred_work_modes: string[];
+  preferred_locations: string[];
+  created_at: string;
+  updated_at: string;
 }
