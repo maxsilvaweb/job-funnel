@@ -55,6 +55,7 @@ export function useMetrics() {
       ghostRate: calculateGhostRate(apps),
       averageTimeToResponse: calculateAverageTimeToResponse(apps),
       applicationsNeededForOffer: applicationsNeededForOffers(apps, 1),
+      applicationsNeededForThreeOffers: applicationsNeededForOffers(apps, 3),
     }
   }, [applications])
 }
