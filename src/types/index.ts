@@ -24,9 +24,16 @@ export type ApplicationSource =
   | 'cold_outreach'
   | 'other';
 
-export interface ApplicationStageHistory {
-  status: ApplicationStatus;
+export type StageOutcome = 'passed' | 'failed' | 'pending' | 'no_response';
+
+export interface Stage {
+  id: string;
+  application_id: string;
+  stage_name: ApplicationStatus;
   date_entered: string;
+  outcome: StageOutcome;
+  notes: string | null;
+  feedback: string | null;
 }
 
 export interface Application {
@@ -47,7 +54,7 @@ export interface Application {
   contact_email: string | null;
   notes: string | null;
   priority: number;
-  stages: ApplicationStageHistory[];
+  stages: Stage[];
   created_at: string;
   updated_at: string;
 }
