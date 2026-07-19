@@ -20,6 +20,7 @@ export const applicationSchema = z.object({
   ]),
   status: z
     .enum([
+      'discovered',
       'applied',
       'responded',
       'screening',

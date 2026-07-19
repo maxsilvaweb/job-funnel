@@ -1,6 +1,7 @@
 // src/types/index.ts
 
 export type ApplicationStatus =
+  | 'discovered'
   | 'applied'
   | 'responded'
   | 'screening'
@@ -11,6 +12,8 @@ export type ApplicationStatus =
   | 'rejected'
   | 'ghosted'
   | 'withdrawn';
+
+// Rest stays the same...
 
 export type ApplicationSource =
   | 'linkedin'

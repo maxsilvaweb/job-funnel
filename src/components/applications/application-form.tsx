@@ -67,7 +67,9 @@ export function ApplicationForm({
         if (result.error) {
           setError(result.error);
           toast({
-            title: application ? 'Could not update application' : 'Could not add application',
+            title: application
+              ? 'Could not update application'
+              : 'Could not add application',
             description: result.error,
             variant: 'error',
           });
@@ -87,7 +89,9 @@ export function ApplicationForm({
         const message = 'Something went wrong. Please try again.';
         setError(message);
         toast({
-          title: application ? 'Could not update application' : 'Could not add application',
+          title: application
+            ? 'Could not update application'
+            : 'Could not add application',
           description: message,
           variant: 'error',
         });

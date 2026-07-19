@@ -3,6 +3,7 @@
 import type { ApplicationStatus, ApplicationSource } from '@/types';
 
 export const FUNNEL_STAGES: ApplicationStatus[] = [
+  'discovered',
   'applied',
   'responded',
   'screening',
@@ -12,7 +13,12 @@ export const FUNNEL_STAGES: ApplicationStatus[] = [
   'accepted',
 ];
 
+// src/lib/constants.ts
+
+// ... existing code ...
+
 export const STAGE_LABELS: Record<ApplicationStatus, string> = {
+  discovered: 'Discovered',
   applied: 'Applied',
   responded: 'Responded',
   screening: 'Screening',
@@ -26,9 +32,10 @@ export const STAGE_LABELS: Record<ApplicationStatus, string> = {
 };
 
 export const STAGE_COLOURS: Record<ApplicationStatus, string> = {
-  applied: '#6366f1',
-  responded: '#8b5cf6',
-  screening: '#a855f7',
+  discovered: '#ec4899',
+  applied: '#10b981',
+  responded: '#0ea5e9',
+  screening: '#f59e0b',
   tech_interview: '#d946ef',
   final_round: '#ec4899',
   offer: '#f43f5e',
@@ -37,6 +44,8 @@ export const STAGE_COLOURS: Record<ApplicationStatus, string> = {
   ghosted: '#6b7280',
   withdrawn: '#9ca3af',
 };
+
+// ... rest stays the same ...
 
 export const SOURCE_LABELS: Record<ApplicationSource, string> = {
   linkedin: 'LinkedIn',

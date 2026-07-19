@@ -10,6 +10,7 @@ import { FUNNEL_STAGES, STAGE_LABELS, STAGE_COLOURS } from '@/lib/constants';
  */
 export function getStageIndex(status: ApplicationStatus): number {
   const progressionStages: ApplicationStatus[] = [
+    'discovered',
     'applied',
     'responded',
     'screening',
