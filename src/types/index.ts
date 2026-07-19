@@ -23,3 +23,48 @@ export type ApplicationSource =
   | 'networking'
   | 'cold_outreach'
   | 'other';
+
+export interface ApplicationStageHistory {
+  status: ApplicationStatus;
+  date_entered: string;
+}
+
+export interface Application {
+  id: string;
+  user_id: string;
+  company: string;
+  role: string;
+  source: ApplicationSource;
+  status: ApplicationStatus;
+  date_applied: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string;
+  location: string | null;
+  remote: boolean;
+  job_url: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  notes: string | null;
+  priority: number;
+  stages: ApplicationStageHistory[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FunnelStage {
+  name: string;
+  count: number;
+  conversionFromPrevious: number;
+  conversionFromTop: number;
+  colour: string;
+}
+
+export type DiagnosisSeverity = 'good' | 'warning' | 'critical';
+
+export interface Diagnosis {
+  stage: string;
+  severity: DiagnosisSeverity;
+  message: string;
+  suggestion: string;
+}
