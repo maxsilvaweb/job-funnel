@@ -45,7 +45,8 @@ export function ApplicationForm({
       salary_max: application?.salary_max ?? null,
       salary_currency: application?.salary_currency ?? 'GBP',
       // Contract
-      day_rate: application?.day_rate ?? null,
+      day_rate_min: application?.day_rate_min ?? null,
+      day_rate_max: application?.day_rate_max ?? null,
       ir35_status: (application?.ir35_status ?? 'undetermined') as IR35Status,
       location: application?.location ?? '',
       remote: application?.remote ?? false,
@@ -272,13 +273,13 @@ export function ApplicationForm({
               </form.Field>
             </div>
           ) : (
-            /* Contract — day rate + IR35 fields */
+            /* Contract — day rate range + IR35 fields */
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <form.Field name="day_rate">
+              <form.Field name="day_rate_min">
                 {(field) => (
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                      Day Rate (£) *
+                      Day Rate Min (£) *
                     </label>
                     <input
                       type="number"
@@ -293,6 +294,38 @@ export function ApplicationForm({
                       placeholder="500"
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="day_rate_max">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      Day Rate Max (£)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={field.state.value ?? ''}
+                      onChange={(e) =>
+                        field.handleChange(
+                          e.target.value ? Number(e.target.value) : null,
+                        )
+                      }
+                      placeholder="650"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {field.state.meta.errors[0]}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>

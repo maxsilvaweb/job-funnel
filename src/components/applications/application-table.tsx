@@ -202,9 +202,14 @@ export function ApplicationTable() {
                 </td>
                 <td className="px-4 py-3 text-xs">
                   {app.employment_type === 'contract' ? (
-                    app.day_rate ? (
+                    app.day_rate_min != null || app.day_rate_max != null ? (
                       <span className="text-emerald-600 font-medium">
-                        £{app.day_rate.toLocaleString()}/day
+                        £
+                        {[app.day_rate_min, app.day_rate_max]
+                          .filter((n): n is number => n != null)
+                          .map((n) => n.toLocaleString())
+                          .join('–')}
+                        /day
                       </span>
                     ) : (
                       <span className="text-zinc-400">—</span>

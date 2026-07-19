@@ -83,10 +83,16 @@ export function ApplicationCard({
 
       {/* Salary / Day Rate */}
       {application.employment_type === 'contract'
-        ? application.day_rate && (
+        ? (application.day_rate_min != null ||
+            application.day_rate_max != null) && (
             <div className="mt-1 flex items-center gap-1.5">
               <p className="text-[10px] font-medium text-emerald-600">
-                £{application.day_rate.toLocaleString()}/day
+                £
+                {[application.day_rate_min, application.day_rate_max]
+                  .filter((n): n is number => n != null)
+                  .map((n) => n.toLocaleString())
+                  .join('–')}
+                /day
               </p>
               {application.ir35_status &&
                 application.ir35_status !== 'undetermined' && (

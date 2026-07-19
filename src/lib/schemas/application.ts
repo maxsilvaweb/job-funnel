@@ -39,7 +39,8 @@ export const applicationSchema = z.object({
   salary_max: z.number().nonnegative().nullable().optional(),
   salary_currency: z.string().default('GBP'),
   // Contract
-  day_rate: z.number().nonnegative().nullable().optional(),
+  day_rate_min: z.number().nonnegative().nullable().optional(),
+  day_rate_max: z.number().nonnegative().nullable().optional(),
   ir35_status: z
     .enum(['inside', 'outside', 'undetermined'])
     .nullable()
@@ -82,12 +83,26 @@ export const applicationSchema = z.object({
     }
   }
 
-  if (data.employment_type === 'contract' && data.day_rate == null) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['day_rate'],
-      message: 'Day rate is required for contract roles',
-    });
+  if (data.employment_type === 'contract') {
+    if (data.day_rate_min == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['day_rate_min'],
+        message: 'Day rate minimum is required for contract roles',
+      });
+    }
+
+    if (
+      data.day_rate_min != null &&
+      data.day_rate_max != null &&
+      data.day_rate_max < data.day_rate_min
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['day_rate_max'],
+        message: 'Day rate maximum must be at least the day rate minimum',
+      });
+    }
   }
 });
 
