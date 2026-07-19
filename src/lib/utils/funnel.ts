@@ -80,6 +80,15 @@ export function calculateResponseRate(applications: Application[]): number {
 }
 
 /**
+ * What percentage of applications have gone completely silent (ghosted).
+ */
+export function calculateGhostRate(applications: Application[]): number {
+  if (applications.length === 0) return 0;
+  const ghosted = applications.filter((a) => a.status === 'ghosted').length;
+  return Math.round((ghosted / applications.length) * 100);
+}
+
+/**
  * Average number of days between applying and first response.
  */
 export function calculateAverageTimeToResponse(

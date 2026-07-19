@@ -6,6 +6,7 @@ import { useMemo } from 'react'
 import { useApplications } from './use-applications'
 import {
   calculateResponseRate,
+  calculateGhostRate,
   calculateAverageTimeToResponse,
   applicationsNeededForOffers,
 } from '@/lib/utils/funnel'
@@ -51,6 +52,7 @@ export function useMetrics() {
       activeApplications: activeApplications.length,
       closedApplications: closedApplications.length,
       responseRate: calculateResponseRate(apps),
+      ghostRate: calculateGhostRate(apps),
       averageTimeToResponse: calculateAverageTimeToResponse(apps),
       applicationsNeededForOffer: applicationsNeededForOffers(apps, 1),
     }
