@@ -1,0 +1,408 @@
+{
+  "name": "Morning Job Hunt",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24,
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://YOUR_APP_URL/api/users",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-users",
+      "name": "Fetch All Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n8n-auth",
+          "name": "Job Funnel Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "users",
+        "options": {}
+      },
+      "id": "split-users",
+      "name": "Split Users",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://boards-api.greenhouse.io/v1/boards/vercel/jobs?content=true",
+        "options": {}
+      },
+      "id": "fetch-greenhouse",
+      "name": "Fetch Greenhouse Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.lever.co/v0/postings/supabase?mode=json",
+        "options": {}
+      },
+      "id": "fetch-lever",
+      "name": "Fetch Lever Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "merge-jobs",
+      "name": "Merge Job Lists",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const jobs = $input.all();\nconst user = $('Split Users').item.json;\nconst keywords = user.target_keywords.map(k => k.toLowerCase());\n\nconst filtered = jobs.filter(item => {\n  const job = item.json;\n  const title = (job.title || '').toLowerCase();\n  const description = (job.content || job.description || '').toLowerCase();\n  const text = title + ' ' + description;\n  return keywords.some(keyword => text.includes(keyword));\n});\n\nif (filtered.length === 0) {\n  return [];\n}\n\nreturn filtered.map(item => ({\n  json: {\n    ...item.json,\n    _user: user\n  }\n}));"
+      },
+      "id": "pre-filter",
+      "name": "Keyword Pre-Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-jobs",
+      "name": "Split Jobs",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "create",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert technical recruiter. Score how well a job matches a candidate CV. Return ONLY valid JSON with no markdown, no code blocks, just the raw JSON object."
+            },
+            {
+              "role": "user",
+              "content": "=Candidate CV:\n{{ $json._user.resume_text }}\n\nTarget Keywords: {{ $json._user.target_keywords.join(', ') }}\nTarget Roles: {{ $json._user.target_roles.join(', ') }}\nPreferred Work Modes: {{ $json._user.preferred_work_modes.join(', ') }}\nEmployment Types: {{ $json._user.employment_types.join(', ') }}\n\nJob Title: {{ $json.title }}\nJob Description: {{ ($json.content || $json.description || '').substring(0, 2000) }}\n\nScore this job 0-100:\n- Technical skills match (40 pts)\n- Seniority match (30 pts)\n- Relevance match (30 pts)\n\nReturn this exact JSON:\n{\"score\": <number>, \"reasoning\": \"<one sentence>\", \"company\": \"<company name>\", \"location\": \"<location>\", \"remote\": <true or false>}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "score-with-ai",
+      "name": "Score With GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [1780, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-creds",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const item = $input.first();\nconst raw = item.json.message.content;\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch(e) {\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try {\n      parsed = JSON.parse(match[0]);\n    } catch(e2) {\n      return [];\n    }\n  } else {\n    return [];\n  }\n}\n\nconst original = item.json;\n\nreturn [{\n  json: {\n    ...original,\n    ai_score: parsed.score || 0,\n    ai_reasoning: parsed.reasoning || '',\n    ai_company: parsed.company || '',\n    ai_location: parsed.location || '',\n    ai_remote: parsed.remote || false\n  }\n}];"
+      },
+      "id": "parse-score",
+      "name": "Parse AI Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "score-check",
+              "leftValue": "={{ $json.ai_score }}",
+              "rightValue": "={{ $json._user.min_ai_score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-by-score",
+      "name": "Filter By Score",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_APP_URL/api/ingest",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json._user.user_id }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $json.ai_company || ($json.company && $json.company.name ? $json.company.name : 'Unknown') }}"
+            },
+            {
+              "name": "role",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "job_url",
+              "value": "={{ $json.absolute_url || $json.hostedUrl || '' }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $json.ai_location || ($json.location && $json.location.name ? $json.location.name : 'Not specified') }}"
+            },
+            {
+              "name": "remote",
+              "value": "={{ $json.ai_remote }}"
+            },
+            {
+              "name": "employment_type",
+              "value": "permanent"
+            },
+            {
+              "name": "ai_score",
+              "value": "={{ $json.ai_score }}"
+            },
+            {
+              "name": "ai_reasoning",
+              "value": "={{ $json.ai_reasoning }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ingest-job",
+      "name": "Insert Into Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2440, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n8n-auth",
+          "name": "Job Funnel Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const results = $input.all();\nconst inserted = results.filter(r => r.json.inserted > 0).length;\nconst skipped = results.filter(r => r.json.skipped > 0).length;\n\nconsole.log(`Morning Job Hunt Complete`);\nconsole.log(`Inserted: ${inserted}`);\nconsole.log(`Skipped: ${skipped}`);\n\nreturn [{\n  json: {\n    summary: `Morning job hunt complete. ${inserted} new jobs discovered, ${skipped} duplicates skipped.`,\n    inserted,\n    skipped,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "summary",
+      "name": "Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch All Users": {
+      "main": [
+        [
+          {
+            "node": "Split Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Users": {
+      "main": [
+        [
+          {
+            "node": "Fetch Greenhouse Jobs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Lever Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Greenhouse Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge Job Lists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Lever Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge Job Lists",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Job Lists": {
+      "main": [
+        [
+          {
+            "node": "Keyword Pre-Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Pre-Filter": {
+      "main": [
+        [
+          {
+            "node": "Split Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Jobs": {
+      "main": [
+        [
+          {
+            "node": "Score With GPT-4o-mini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score With GPT-4o-mini": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Score": {
+      "main": [
+        [
+          {
+            "node": "Filter By Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter By Score": {
+      "main": [
+        [
+          {
+            "node": "Insert Into Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Into Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "1"
+}
