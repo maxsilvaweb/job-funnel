@@ -17,5 +17,5 @@ function getSnapshot(): Theme {
 }
 
 export function useTheme(): Theme {
-  return useSyncExternalStore(subscribe, getSnapshot, () => 'light' as Theme);
+  return useSyncExternalStore(subscribe, getSnapshot, () => 'dark' as Theme);
 }

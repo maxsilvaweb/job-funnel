@@ -5,6 +5,7 @@
 import { useForm } from '@tanstack/react-form';
 import { createApplication, updateApplication } from '@/actions/applications';
 import { SOURCE_LABELS } from '@/lib/constants';
+import { Slider } from '@/components/ui/slider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useToast } from '@/lib/hooks/use-toast';
@@ -517,21 +518,15 @@ export function ApplicationForm({
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">
               Priority (0–5)
             </label>
-            <input
-              type="range"
+            <Slider
+              value={field.state.value}
+              onChange={(v) => field.handleChange(v)}
               min={0}
               max={5}
-              value={field.state.value}
-              onChange={(e) => field.handleChange(Number(e.target.value))}
-              className="w-full accent-emerald-600"
+              formatValue={(v) => `Priority ${v} / 5`}
+              minLabel="Low"
+              maxLabel="High"
             />
-            <div className="flex justify-between text-xs text-zinc-400">
-              <span>Low</span>
-              <span className="font-medium text-zinc-700">
-                {field.state.value}
-              </span>
-              <span>High</span>
-            </div>
           </div>
         )}
       </form.Field>

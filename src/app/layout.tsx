@@ -15,7 +15,11 @@ export const metadata: Metadata = {
 const themeScript = `
   try {
     const theme = localStorage.getItem('job-funnel-theme');
-    if (theme === 'dark') document.documentElement.classList.add(theme);
+    if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
   } catch {}
 `;
 
@@ -25,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full" suppressHydrationWarning>
+    <html lang="en" className="dark h-full" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

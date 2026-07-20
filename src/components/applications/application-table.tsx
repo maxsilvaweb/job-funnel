@@ -8,6 +8,7 @@ import {
 } from '@/lib/hooks/use-applications';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 import { STAGE_LABELS, SOURCE_LABELS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils/dates';
 import {
@@ -73,25 +74,16 @@ type SortDirection = 'asc' | 'desc';
 // ── Moved outside ApplicationTable ──────────────────────────
 interface SortButtonProps {
   field: SortField;
-  currentField: SortField;
   children: React.ReactNode;
   onSort: (field: SortField) => void;
 }
 
-function SortButton({
-  field,
-  currentField,
-  children,
-  onSort,
-}: SortButtonProps) {
+function SortButton({ field, children, onSort }: SortButtonProps) {
   return (
     <button
       onClick={() => onSort(field)}
       className={clsx(
-        'flex items-center gap-1 hover:text-zinc-900 transition-colors',
-        currentField === field
-          ? 'text-zinc-900 font-semibold'
-          : 'text-zinc-500',
+        'flex items-center gap-1 font-medium text-zinc-500 hover:text-zinc-900 transition-colors',
       )}
     >
       {children}
@@ -159,7 +151,7 @@ export function ApplicationTable() {
     return (
       <Card>
         <div className="flex h-48 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+          <Spinner />
         </div>
       </Card>
     );
@@ -182,45 +174,29 @@ export function ApplicationTable() {
     <Card padding={false} className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-zinc-200 bg-zinc-50">
+          <thead className="border-b border-zinc-200 bg-white">
             <tr>
               <th className="px-4 py-3 font-medium">
-                <SortButton
-                  field="company"
-                  currentField={sortField}
-                  onSort={handleSort}
-                >
+                <SortButton field="company" onSort={handleSort}>
                   Company
                 </SortButton>
               </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Role</th>
               <th className="px-4 py-3 font-medium">
-                <SortButton
-                  field="status"
-                  currentField={sortField}
-                  onSort={handleSort}
-                >
+                <SortButton field="status" onSort={handleSort}>
                   Status
                 </SortButton>
               </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Source</th>
               <th className="px-4 py-3 font-medium">
-                <SortButton
-                  field="date_applied"
-                  currentField={sortField}
-                  onSort={handleSort}
-                >
+                <SortButton field="date_applied" onSort={handleSort}>
                   Applied
                 </SortButton>
               </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Salary</th>
               <th className="px-4 py-3 font-medium text-zinc-500">IR35</th>
               <th className="px-4 py-3 font-medium">
-                <SortButton
-                  field="priority"
-                  currentField={sortField}
-                  onSort={handleSort}
-                >
+                <SortButton field="priority" onSort={handleSort}>
                   Priority
                 </SortButton>
               </th>

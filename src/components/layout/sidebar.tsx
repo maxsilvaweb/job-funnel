@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard,
@@ -26,7 +26,7 @@ const navItems = [
     icon: Table2,
   },
   {
-    href: '/applications?view=kanban',
+    href: '/kanban',
     label: 'Kanban',
     icon: Kanban,
   },
@@ -39,14 +39,9 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const view = searchParams.get('view');
 
   function checkActive(href: string) {
-    const [path, query] = href.split('?');
-    if (pathname !== path) return false;
-    const wantsKanban = query === 'view=kanban';
-    return wantsKanban ? view === 'kanban' : view !== 'kanban';
+    return pathname === href;
   }
 
   return (

@@ -11,7 +11,7 @@ interface BadgeProps {
 const statusStyles: Record<ApplicationStatus, string> = {
   discovered: 'bg-pink-100 text-pink-700',
   applied: 'bg-emerald-100 text-emerald-700',
-  responded: 'bg-sky-100 text-sky-700',
+  responded: 'bg-emerald-500 text-white',
   screening: 'bg-amber-100 text-amber-700',
   tech_interview: 'bg-fuchsia-100 text-fuchsia-700',
   final_round: 'bg-pink-100 text-pink-700',

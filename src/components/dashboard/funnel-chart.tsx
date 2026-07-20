@@ -109,6 +109,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
       <CardHeader>
         <CardTitle>Application Funnel</CardTitle>
       </CardHeader>
+      <div className="funnel-chart">
       <ResponsiveContainer width="100%" height={380}>
         <BarChart
           data={data}
@@ -139,8 +140,18 @@ export function FunnelChart({ data }: FunnelChartProps) {
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={CustomTooltip} cursor={{ fill: cursorFill }} />
-          <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={28}>
+          <Tooltip
+            content={CustomTooltip}
+            cursor={{ fill: cursorFill, stroke: 'none', strokeWidth: 0 }}
+          />
+          <Bar
+            dataKey="count"
+            radius={[0, 6, 6, 0]}
+            barSize={28}
+            stroke="none"
+            strokeWidth={0}
+            activeBar={false}
+          >
             {data.map((_, index) => {
               const palette = isDark ? DARK_TEAL_PALETTE : LIGHT_TEAL_PALETTE;
               return (
@@ -148,6 +159,8 @@ export function FunnelChart({ data }: FunnelChartProps) {
                   key={index}
                   fill={palette[index % palette.length]}
                   fillOpacity={0.85}
+                  stroke="none"
+                  strokeWidth={0}
                 />
               );
             })}
@@ -164,6 +177,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </Card>
   );
 }

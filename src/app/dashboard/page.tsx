@@ -28,10 +28,8 @@ export default async function DashboardPage() {
         <MetricsGrid />
 
         {/* Funnel chart + conversion rates */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            <FunnelChart data={initialFunnel} />
-          </div>
+        <div className="space-y-6">
+          <FunnelChart data={initialFunnel} />
           <ConversionRates />
         </div>
 

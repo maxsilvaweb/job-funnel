@@ -27,7 +27,7 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={clsx(
-        'flex w-72 shrink-0 flex-col rounded-xl border bg-zinc-50 transition-colors',
+        'flex w-72 shrink-0 flex-col rounded-xl border bg-white transition-colors',
         isOver
           ? 'kanban-drop-active border-teal-400 bg-indigo-50'
           : 'border-zinc-200',
@@ -42,7 +42,10 @@ export function KanbanColumn({
         <h3 className="text-sm font-semibold text-zinc-900 truncate flex-1">
           {label}
         </h3>
-        <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 shrink-0">
+        <span
+          className="rounded-full px-2 py-0.5 text-xs font-medium text-white shrink-0"
+          style={{ backgroundColor: STAGE_COLOURS[id] }}
+        >
           {count}
         </span>
       </div>

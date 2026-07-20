@@ -9,6 +9,8 @@ import {
 } from '@/lib/hooks/use-preferences';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
+import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/lib/hooks/use-toast';
 
 const EMPLOYMENT_TYPE_OPTIONS = [
@@ -130,7 +132,7 @@ export default function PreferencesContent() {
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+        <Spinner />
       </div>
     );
   }
@@ -181,25 +183,17 @@ export default function PreferencesContent() {
         <p className="text-sm text-zinc-500 mb-4">
           Only jobs scoring above this threshold will appear in your dashboard.
         </p>
-        <div className="mb-1 flex justify-between text-sm">
-          <span className="text-zinc-600">Threshold</span>
-          <span className="font-mono font-semibold text-zinc-900">
-            {minScore}
-          </span>
-        </div>
-        <input
-          type="range"
+        <Slider
+          label="Threshold"
+          value={minScore}
+          onChange={setMinScore}
           min={50}
           max={95}
           step={5}
-          value={minScore}
-          onChange={(e) => setMinScore(Number(e.target.value))}
-          className="w-full accent-emerald-600"
+          formatValue={(v) => `Min score ${v}`}
+          minLabel="50 — cast wide net"
+          maxLabel="95 — perfect match only"
         />
-        <div className="mt-1 flex justify-between text-xs text-zinc-400">
-          <span>50 — cast wide net</span>
-          <span>95 — perfect match only</span>
-        </div>
       </Card>
 
       <Card>

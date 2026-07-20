@@ -3,20 +3,20 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { KanbanBoard } from '@/components/applications/kanban-board';
 import { ApplicationForm } from '@/components/applications/application-form';
 import { ApplicationTable } from '@/components/applications/application-table';
 import { Card } from '@/components/ui/card';
 import { Plus, Kanban, Table2, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useSearchParams } from 'next/navigation';
 
-export function ApplicationsView() {
+interface ApplicationsViewProps {
+  view: 'table' | 'kanban';
+}
+
+export function ApplicationsView({ view }: ApplicationsViewProps) {
   const [showForm, setShowForm] = useState(false);
-  const searchParams = useSearchParams();
-  const [currentView, setCurrentView] = useState<'table' | 'kanban'>(
-    searchParams.get('view') === 'kanban' ? 'kanban' : 'table',
-  );
 
   return (
     <div className="space-y-6">
@@ -32,30 +32,30 @@ export function ApplicationsView() {
         <div className="flex items-center gap-3">
           {/* View toggle */}
           <div className="flex rounded-lg border border-zinc-200">
-            <button
-              onClick={() => setCurrentView('table')}
+            <Link
+              href="/applications"
               className={clsx(
                 'flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 text-sm transition-colors',
-                currentView === 'table'
-                  ? 'bg-zinc-100 text-zinc-900 font-medium'
+                view === 'table'
+                  ? 'bg-emerald-50 text-emerald-700 font-medium'
                   : 'text-zinc-500 hover:text-zinc-700',
               )}
             >
               <Table2 className="h-4 w-4" />
               Table
-            </button>
-            <button
-              onClick={() => setCurrentView('kanban')}
+            </Link>
+            <Link
+              href="/kanban"
               className={clsx(
                 'flex items-center gap-1.5 rounded-r-lg px-3 py-1.5 text-sm transition-colors',
-                currentView === 'kanban'
-                  ? 'bg-zinc-100 text-zinc-900 font-medium'
+                view === 'kanban'
+                  ? 'bg-emerald-50 text-emerald-700 font-medium'
                   : 'text-zinc-500 hover:text-zinc-700',
               )}
             >
               <Kanban className="h-4 w-4" />
               Kanban
-            </button>
+            </Link>
           </div>
 
           {/* Add button */}
@@ -94,7 +94,8 @@ export function ApplicationsView() {
       )}
 
       {/* View */}
-      {currentView === 'kanban' ? <KanbanBoard /> : <ApplicationTable />}
+      {!showForm &&
+        (view === 'kanban' ? <KanbanBoard /> : <ApplicationTable />)}
     </div>
   );
 }

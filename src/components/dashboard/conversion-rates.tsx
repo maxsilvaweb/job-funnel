@@ -2,9 +2,10 @@
 
 'use client';
 
+import { Fragment } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFunnelData } from '@/lib/hooks/use-funnel-data';
-import { ArrowDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function ConversionRates() {
@@ -16,10 +17,10 @@ export function ConversionRates() {
         <CardHeader>
           <CardTitle>Stage Conversion</CardTitle>
         </CardHeader>
-        <div className="flex h-64 items-center justify-center text-zinc-400">
+        <div className="flex h-24 items-center justify-center text-zinc-400">
           <div className="text-center">
             <p className="text-sm font-medium">No data yet</p>
-            <p className="text-xs mt-1">
+            <p className="mt-1 text-xs">
               Add applications to see conversion rates
             </p>
           </div>
@@ -33,31 +34,37 @@ export function ConversionRates() {
       <CardHeader>
         <CardTitle>Stage Conversion</CardTitle>
       </CardHeader>
-      <div className="space-y-1">
+
+      <div className="flex w-full items-stretch gap-0.5 overflow-x-auto pb-1 snap-x snap-mandatory xl:overflow-visible xl:pb-0">
         {funnelData.map((stage, index) => (
-          <div key={stage.name}>
-            <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 transition-colors">
-              <div className="flex items-center gap-3">
+          <Fragment key={stage.name}>
+            {index > 0 && (
+              <ChevronRight
+                className="mx-0.5 hidden h-4 w-4 shrink-0 self-center text-zinc-300 sm:block"
+                aria-hidden
+              />
+            )}
+
+            <div className="flex min-w-28 shrink-0 snap-start flex-col rounded-lg border border-zinc-200 bg-white px-3 py-2 sm:min-w-32 xl:min-w-0 xl:flex-1">
+              <div className="flex items-center gap-2">
                 <div
-                  className="h-3 w-3 rounded-full"
-                  style={{
-                    backgroundColor: stage.colour,
-                  }}
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: stage.colour }}
                 />
-                <span className="text-sm font-medium text-zinc-900">
+                <span className="truncate text-xs font-medium text-zinc-900">
                   {stage.name}
                 </span>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="mt-1.5 flex items-center justify-between gap-2">
                 <span className="font-mono text-sm font-bold text-zinc-900">
                   {stage.count}
                 </span>
 
-                {index > 0 && (
+                {index > 0 ? (
                   <span
                     className={clsx(
-                      'rounded-md px-2 py-0.5 font-mono text-xs font-semibold',
+                      'rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold',
                       stage.conversionFromPrevious >= 50
                         ? 'bg-emerald-100 text-emerald-700'
                         : stage.conversionFromPrevious >= 20
@@ -67,16 +74,12 @@ export function ConversionRates() {
                   >
                     {stage.conversionFromPrevious}%
                   </span>
+                ) : (
+                  <span className="text-[10px] text-zinc-400">—</span>
                 )}
               </div>
             </div>
-
-            {index < funnelData.length - 1 && (
-              <div className="flex justify-center py-1">
-                <ArrowDown className="h-3 w-3 text-zinc-300" />
-              </div>
-            )}
-          </div>
+          </Fragment>
         ))}
       </div>
     </Card>

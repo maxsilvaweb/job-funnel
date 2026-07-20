@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/layout/shell';
 import { ApplicationForm } from '@/components/applications/application-form';
-import { StageTimeline } from '@/components/applications/stage-timeline';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { STAGE_LABELS } from '@/lib/constants';
@@ -22,7 +21,7 @@ export default async function ApplicationDetailPage({ params }: Props) {
 
   const { data: application, error } = await supabase
     .from('applications')
-    .select('*, stages(*)')
+    .select('*')
     .eq('id', id)
     .single();
 
@@ -70,26 +69,14 @@ export default async function ApplicationDetailPage({ params }: Props) {
         </div>
 
         {/* Main content */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div>
           {/* Edit form */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Edit Application</CardTitle>
-              </CardHeader>
-              <ApplicationForm application={application} />
-            </Card>
-          </div>
-
-          {/* Stage timeline */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Stage Timeline</CardTitle>
-              </CardHeader>
-              <StageTimeline stages={application.stages || []} />
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit Application</CardTitle>
+            </CardHeader>
+            <ApplicationForm application={application} />
+          </Card>
         </div>
       </div>
     </Shell>
