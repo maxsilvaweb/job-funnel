@@ -1,11 +1,17 @@
+/** Enough for summary + recent roles; keeps OpenAI TPM usage under control. */
+export const RESUME_TEXT_MAX_CHARS = 8000;
+
 /**
  * Strip HTML and normalize plain text for safe use in downstream
  * consumers (e.g. n8n → OpenAI JSON bodies).
  */
-export function sanitizePlainText(input: string | null | undefined): string {
+export function sanitizePlainText(
+  input: string | null | undefined,
+  maxChars = RESUME_TEXT_MAX_CHARS,
+): string {
   if (!input) return '';
 
-  return input
+  const cleaned = input
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
@@ -22,4 +28,7 @@ export function sanitizePlainText(input: string | null | undefined): string {
     .replace(/\n{3,}/g, '\n\n')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
+
+  if (cleaned.length <= maxChars) return cleaned;
+  return `${cleaned.slice(0, maxChars).trimEnd()}\n…[truncated]`;
 }

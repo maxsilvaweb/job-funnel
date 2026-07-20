@@ -1,34 +1,16 @@
 // src/app/api/users/route.ts
 
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { createAdminClient, verifyN8nAuth } from '@/lib/supabase/admin';
 import { sanitizePlainText } from '@/lib/utils/sanitize-text';
 
-function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    },
-  );
-}
-
 export async function GET(request: Request) {
-  // Verify this is n8n calling
-  const token = request.headers.get('authorization');
-  const expected = `Bearer ${process.env.N8N_WEBHOOK_SECRET}`;
-
-  if (token !== expected) {
+  if (!verifyN8nAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const supabase = createAdminClient();
 
-  // Fetch all users and their preferences
   const { data, error } = await supabase.from('user_preferences').select('*');
 
   if (error) {
