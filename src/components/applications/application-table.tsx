@@ -71,6 +71,27 @@ const SOURCE_ICON_COLOURS: Partial<Record<ApplicationSource, string>> = {
 type SortField = 'company' | 'date_applied' | 'status' | 'priority';
 type SortDirection = 'asc' | 'desc';
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  GBP: '£',
+  USD: '$',
+  EUR: '€',
+};
+
+function formatMoney(
+  currency: string,
+  min: number | null | undefined,
+  max: number | null | undefined,
+): string {
+  const symbol = CURRENCY_SYMBOLS[currency] ?? `${currency} `;
+  const parts = [min, max]
+    .filter((n): n is number => n != null)
+    .map((n) => n.toLocaleString());
+  if (parts.length === 0) return '—';
+  if (parts.length === 1) return `${symbol}${parts[0]}`;
+  if (parts[0] === parts[1]) return `${symbol}${parts[0]}`;
+  return `${symbol}${parts[0]}–${parts[1]}`;
+}
+
 // ── Moved outside ApplicationTable ──────────────────────────
 interface SortButtonProps {
   field: SortField;
@@ -94,7 +115,7 @@ function SortButton({ field, children, onSort }: SortButtonProps) {
 // ────────────────────────────────────────────────────────────
 
 export function ApplicationTable() {
-  const { data: applications, isLoading } = useApplications();
+  const { data: applications, isLoading, isError, error } = useApplications();
   const deleteApp = useDeleteApplication();
   const [sortField, setSortField] = useState<SortField>('date_applied');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -157,6 +178,19 @@ export function ApplicationTable() {
     );
   }
 
+  if (isError) {
+    return (
+      <Card>
+        <div className="flex h-48 flex-col items-center justify-center gap-2 text-zinc-500">
+          <p className="text-lg font-medium">Could not load applications</p>
+          <p className="max-w-md text-center text-sm text-zinc-400">
+            {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+        </div>
+      </Card>
+    );
+  }
+
   if (!applications?.length) {
     return (
       <Card>
@@ -194,6 +228,7 @@ export function ApplicationTable() {
                 </SortButton>
               </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Salary</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Type</th>
               <th className="px-4 py-3 font-medium text-zinc-500">IR35</th>
               <th className="px-4 py-3 font-medium">
                 <SortButton field="priority" onSort={handleSort}>
@@ -245,24 +280,37 @@ export function ApplicationTable() {
                   {app.employment_type === 'contract' ? (
                     app.day_rate_min != null || app.day_rate_max != null ? (
                       <span className="text-emerald-600 font-medium">
-                        £
-                        {[app.day_rate_min, app.day_rate_max]
-                          .filter((n): n is number => n != null)
-                          .map((n) => n.toLocaleString())
-                          .join('–')}
+                        {formatMoney(
+                          app.salary_currency,
+                          app.day_rate_min,
+                          app.day_rate_max,
+                        )}
                         /day
                       </span>
                     ) : (
                       <span className="text-zinc-400">—</span>
                     )
-                  ) : app.salary_max ? (
+                  ) : app.salary_min != null || app.salary_max != null ? (
                     <span className="text-emerald-600 font-medium">
-                      {app.salary_currency}{' '}
-                      {app.salary_min?.toLocaleString() ?? '?'}–
-                      {app.salary_max.toLocaleString()}
+                      {formatMoney(
+                        app.salary_currency,
+                        app.salary_min,
+                        app.salary_max,
+                      )}
                     </span>
                   ) : (
                     <span className="text-zinc-400">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  {app.employment_type === 'contract' ? (
+                    <span className="inline-flex items-center rounded-full bg-sky-600 px-2.5 py-0.5 text-xs font-medium text-white">
+                      Contract
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-medium text-white">
+                      Permanent
+                    </span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-xs">

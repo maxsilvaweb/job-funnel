@@ -22,6 +22,7 @@ import type { Application, ApplicationStatus } from '@/types';
 
 // All stages that appear as columns including terminal ones
 const KANBAN_STAGES: ApplicationStatus[] = [
+  'discovered',
   'applied',
   'responded',
   'screening',
@@ -34,7 +35,7 @@ const KANBAN_STAGES: ApplicationStatus[] = [
 ];
 
 export function KanbanBoard() {
-  const { data: applications, isLoading } = useApplications();
+  const { data: applications, isLoading, isError, error } = useApplications();
   const updateStatus = useUpdateStatus();
   const [activeApp, setActiveApp] = useState<Application | null>(null);
 
@@ -120,6 +121,21 @@ export function KanbanBoard() {
     return (
       <div className="flex h-96 items-center justify-center">
         <Spinner size={32} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-96 items-center justify-center rounded-xl border-2 border-dashed border-zinc-200">
+        <div className="text-center">
+          <p className="text-lg font-medium text-zinc-500">
+            Could not load applications
+          </p>
+          <p className="mt-1 max-w-md text-sm text-zinc-400">
+            {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
+        </div>
       </div>
     );
   }
