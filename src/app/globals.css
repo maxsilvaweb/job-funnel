@@ -79,8 +79,8 @@ html.dark {
   .dark .text-emerald-600 { color: #6ee7b7; }
   .dark .text-amber-600 { color: #fcd34d; }
   .dark .text-red-600 { color: #fca5a5; }
-  .dark button.bg-indigo-600 { background-color: #7c3aed; }
-  .dark button.hover\:bg-indigo-700:hover { background-color: #6d28d9; }
+  .dark button.bg-indigo-600 { background-color: #059669; }
+  .dark button.hover\:bg-indigo-700:hover { background-color: #047857; }
   .dark .hover\:bg-zinc-50:hover,
   .dark .hover\:bg-zinc-100:hover { background-color: #3f3f46; }
   .dark .hover\:bg-zinc-200:hover { background-color: #52525b; }

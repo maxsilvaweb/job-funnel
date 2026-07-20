@@ -8,7 +8,8 @@ import {
   useUpdatePreferences,
 } from '@/lib/hooks/use-preferences';
 import { useState, useEffect } from 'react';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/lib/hooks/use-toast';
 
 const EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'permanent', label: 'Permanent' },
@@ -30,7 +31,7 @@ const WORK_MODE_OPTIONS = [
 export default function PreferencesContent() {
   const { data: prefs, isLoading } = usePreferences();
   const updatePrefs = useUpdatePreferences();
-  const [saved, setSaved] = useState(false);
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
   const [automationEnabled, setAutomationEnabled] = useState(true);
@@ -82,34 +83,48 @@ export default function PreferencesContent() {
 
   async function handleSave() {
     setSaving(true);
-    setSaved(false);
 
-    await updatePrefs.mutateAsync({
-      automation_enabled: automationEnabled,
-      min_ai_score: minScore,
-      employment_types: employmentTypes,
-      ir35_preference: ir35Preference as 'inside' | 'outside' | 'both',
-      preferred_work_modes: workModes,
-      preferred_locations: preferredLocations
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean),
-      target_roles: targetRoles
-        .split(',')
-        .map((r) => r.trim())
-        .filter(Boolean),
-      target_keywords: targetKeywords
-        .split(',')
-        .map((k) => k.trim())
-        .filter(Boolean),
-      resume_text: resumeText,
-      notify_email: notifyEmail,
-      notify_email_address: notifyEmailAddress || null,
-    });
+    try {
+      await updatePrefs.mutateAsync({
+        automation_enabled: automationEnabled,
+        min_ai_score: minScore,
+        employment_types: employmentTypes,
+        ir35_preference: ir35Preference as 'inside' | 'outside' | 'both',
+        preferred_work_modes: workModes,
+        preferred_locations: preferredLocations
+          .split(',')
+          .map((l) => l.trim())
+          .filter(Boolean),
+        target_roles: targetRoles
+          .split(',')
+          .map((r) => r.trim())
+          .filter(Boolean),
+        target_keywords: targetKeywords
+          .split(',')
+          .map((k) => k.trim())
+          .filter(Boolean),
+        resume_text: resumeText,
+        notify_email: notifyEmail,
+        notify_email_address: notifyEmailAddress || null,
+      });
 
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+      toast({
+        title: 'Preferences saved',
+        description: 'Your automation settings have been updated.',
+        variant: 'success',
+      });
+    } catch (err) {
+      toast({
+        title: 'Could not save preferences',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'Something went wrong. Please try again.',
+        variant: 'error',
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (isLoading) {
@@ -121,7 +136,7 @@ export default function PreferencesContent() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">Preferences</h1>
         <p className="mt-1 text-sm text-zinc-500">
@@ -129,6 +144,7 @@ export default function PreferencesContent() {
         </p>
       </div>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Automation</CardTitle>
@@ -307,7 +323,7 @@ export default function PreferencesContent() {
         />
       </Card>
 
-      <Card>
+      <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Your CV / Resume</CardTitle>
         </CardHeader>
@@ -327,7 +343,7 @@ export default function PreferencesContent() {
         </p>
       </Card>
 
-      <Card>
+      <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Email Notifications</CardTitle>
         </CardHeader>
@@ -364,14 +380,9 @@ export default function PreferencesContent() {
           )}
         </div>
       </Card>
+      </div>
 
       <div className="flex items-center justify-end gap-3">
-        {saved && (
-          <span className="flex items-center gap-1.5 text-sm text-emerald-600">
-            <Check className="h-4 w-4" />
-            Saved
-          </span>
-        )}
         <button
           type="button"
           onClick={handleSave}

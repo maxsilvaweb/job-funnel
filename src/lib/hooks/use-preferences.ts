@@ -29,9 +29,16 @@ export function useUpdatePreferences() {
 
   return useMutation({
     mutationFn: async (updates: Partial<UserPreferences>) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('user_preferences')
         .update(updates)
+        .eq('user_id', user.id)
         .select()
         .single();
 

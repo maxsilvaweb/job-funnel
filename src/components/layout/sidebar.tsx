@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { clsx } from 'clsx';
 import {
   LayoutDashboard,
@@ -39,19 +39,28 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const view = searchParams.get('view');
+
+  function checkActive(href: string) {
+    const [path, query] = href.split('?');
+    if (pathname !== path) return false;
+    const wantsKanban = query === 'view=kanban';
+    return wantsKanban ? view === 'kanban' : view !== 'kanban';
+  }
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-zinc-200 bg-white p-4 lg:block">
       <div className="mb-8">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Target className="h-7 w-7 text-indigo-600" />
+          <Target className="h-7 w-7 text-emerald-600" />
           <span className="text-lg font-bold text-zinc-900">Job Funnel</span>
         </Link>
       </div>
 
       <nav className="space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href.split('?')[0];
+          const isActive = checkActive(href);
 
           return (
             <Link
@@ -60,7 +69,7 @@ export function Sidebar() {
               className={clsx(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-indigo-50 text-indigo-700'
+                  ? 'bg-emerald-50 text-emerald-700'
                   : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',
               )}
             >

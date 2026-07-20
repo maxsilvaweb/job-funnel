@@ -523,7 +523,7 @@ export function ApplicationForm({
               max={5}
               value={field.state.value}
               onChange={(e) => field.handleChange(Number(e.target.value))}
-              className="w-full accent-indigo-600"
+              className="w-full accent-emerald-600"
             />
             <div className="flex justify-between text-xs text-zinc-400">
               <span>Low</span>
