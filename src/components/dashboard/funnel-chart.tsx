@@ -15,11 +15,36 @@ import {
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTheme } from '@/lib/hooks/use-theme';
 import type { FunnelStage } from '@/types';
 
 interface FunnelChartProps {
   data: FunnelStage[];
 }
+
+// Teal gradient used for the funnel bars in dark mode (light -> deep).
+const DARK_TEAL_PALETTE = [
+  '#99f6e4',
+  '#5eead4',
+  '#2dd4bf',
+  '#14b8a6',
+  '#0d9488',
+  '#0f766e',
+  '#115e59',
+  '#134e4a',
+];
+
+// Teal gradient for light mode — deeper shades for contrast on white.
+const LIGHT_TEAL_PALETTE = [
+  '#5eead4',
+  '#2dd4bf',
+  '#14b8a6',
+  '#0d9488',
+  '#0f766e',
+  '#115e59',
+  '#134e4a',
+  '#042f2e',
+];
 
 function CustomTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
@@ -54,6 +79,15 @@ function CustomTooltip({ active, payload }: TooltipContentProps) {
 }
 
 export function FunnelChart({ data }: FunnelChartProps) {
+  const theme = useTheme();
+  const isDark = theme === 'dark';
+
+  const gridStroke = isDark ? '#27272a' : '#f4f4f5';
+  const axisTickFill = isDark ? '#a1a1aa' : '#71717a';
+  const categoryTickFill = isDark ? '#e4e4e7' : '#3f3f46';
+  const labelFill = isDark ? '#a1a1aa' : '#71717a';
+  const cursorFill = isDark ? 'rgba(45, 212, 191, 0.12)' : '#f4f4f5';
+
   if (data.length === 0) {
     return (
       <Card>
@@ -89,11 +123,11 @@ export function FunnelChart({ data }: FunnelChartProps) {
           <CartesianGrid
             strokeDasharray="3 3"
             horizontal={false}
-            stroke="#f4f4f5"
+            stroke={gridStroke}
           />
           <XAxis
             type="number"
-            tick={{ fontSize: 12, fill: '#71717a' }}
+            tick={{ fontSize: 12, fill: axisTickFill }}
             axisLine={false}
             tickLine={false}
           />
@@ -101,15 +135,22 @@ export function FunnelChart({ data }: FunnelChartProps) {
             dataKey="name"
             type="category"
             width={110}
-            tick={{ fontSize: 12, fill: '#3f3f46' }}
+            tick={{ fontSize: 12, fill: categoryTickFill }}
             axisLine={false}
             tickLine={false}
           />
-          <Tooltip content={CustomTooltip} cursor={{ fill: '#f4f4f5' }} />
+          <Tooltip content={CustomTooltip} cursor={{ fill: cursorFill }} />
           <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={28}>
-            {data.map((entry, index) => (
-              <Cell key={index} fill={entry.colour} fillOpacity={0.85} />
-            ))}
+            {data.map((_, index) => {
+              const palette = isDark ? DARK_TEAL_PALETTE : LIGHT_TEAL_PALETTE;
+              return (
+                <Cell
+                  key={index}
+                  fill={palette[index % palette.length]}
+                  fillOpacity={0.85}
+                />
+              );
+            })}
             <LabelList
               dataKey="conversionFromTop"
               position="right"
@@ -117,7 +158,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                fill: '#71717a',
+                fill: labelFill,
               }}
             />
           </Bar>

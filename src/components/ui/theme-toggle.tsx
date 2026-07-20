@@ -1,39 +1,26 @@
 'use client';
 
 import { Moon, Sun } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
-
-const storageKey = 'job-funnel-theme';
-const themeChangeEvent = 'job-funnel-theme-change';
-type Theme = 'light' | 'dark';
+import {
+  useTheme,
+  themeStorageKey,
+  themeChangeEvent,
+  type Theme,
+} from '@/lib/hooks/use-theme';
 
 const nextTheme: Record<Theme, Theme> = {
   light: 'dark',
   dark: 'light',
 };
 
-function subscribeToTheme(callback: () => void) {
-  window.addEventListener(themeChangeEvent, callback);
-  return () => window.removeEventListener(themeChangeEvent, callback);
-}
-
-function getThemeSnapshot(): Theme {
-  if (document.documentElement.classList.contains('dark')) return 'dark';
-  return 'light';
-}
-
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(
-    subscribeToTheme,
-    getThemeSnapshot,
-    () => 'light' as Theme,
-  );
+  const theme = useTheme();
 
   function toggleTheme() {
     const next = nextTheme[theme];
     document.documentElement.classList.remove('dark');
     if (next !== 'light') document.documentElement.classList.add(next);
-    localStorage.setItem(storageKey, next);
+    localStorage.setItem(themeStorageKey, next);
     window.dispatchEvent(new Event(themeChangeEvent));
   }
 

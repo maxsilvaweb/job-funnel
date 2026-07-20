@@ -67,7 +67,7 @@ export function Sidebar() {
               key={href}
               href={href}
               className={clsx(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'sidebar-link flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-emerald-50 text-emerald-700'
                   : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',

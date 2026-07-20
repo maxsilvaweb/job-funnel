@@ -77,6 +77,8 @@ html.dark {
   .dark .text-amber-700 { color: #fde68a; }
   .dark .text-red-700 { color: #fecaca; }
   .dark .text-emerald-600 { color: #6ee7b7; }
+  .dark tbody tr.table-row-hover:hover { background-color: rgba(45, 212, 191, 0.12); }
+  .dark aside a.sidebar-link:hover { background-color: #064e3b; }
   .dark .text-amber-600 { color: #fcd34d; }
   .dark .text-red-600 { color: #fca5a5; }
   .dark button.bg-indigo-600 { background-color: #059669; }

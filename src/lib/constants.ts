@@ -38,7 +38,7 @@ export const STAGE_COLOURS: Record<ApplicationStatus, string> = {
   screening: '#f59e0b',
   tech_interview: '#d946ef',
   final_round: '#ec4899',
-  offer: '#f43f5e',
+  offer: '#14b8a6',
   accepted: '#10b981',
   rejected: '#ef4444',
   ghosted: '#6b7280',
