@@ -52,6 +52,10 @@ html.dark {
   .hover\:bg-zinc-100:hover { background-color: #d6eddb; }
   .dark .bg-white { background-color: #18181b; }
   .dark .bg-indigo-50 { background-color: #1e1b4b; }
+  .dark .kanban-drop-active {
+    background-color: #042f2e;
+    border-color: #2dd4bf;
+  }
   .dark .bg-indigo-100 { background-color: #312e81; }
   .dark .bg-violet-100 { background-color: #2e1065; }
   .dark .bg-purple-100 { background-color: #3b0764; }

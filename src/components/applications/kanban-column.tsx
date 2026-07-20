@@ -28,7 +28,9 @@ export function KanbanColumn({
       ref={setNodeRef}
       className={clsx(
         'flex w-72 shrink-0 flex-col rounded-xl border bg-zinc-50 transition-colors',
-        isOver ? 'border-indigo-300 bg-indigo-50' : 'border-zinc-200',
+        isOver
+          ? 'kanban-drop-active border-teal-400 bg-indigo-50'
+          : 'border-zinc-200',
       )}
     >
       {/* Column header */}
@@ -53,7 +55,7 @@ export function KanbanColumn({
             className={clsx(
               'flex h-24 items-center justify-center rounded-lg border-2 border-dashed text-xs transition-colors',
               isOver
-                ? 'border-indigo-300 text-indigo-400'
+                ? 'border-teal-400 text-teal-400'
                 : 'border-zinc-200 text-zinc-400',
             )}
           >

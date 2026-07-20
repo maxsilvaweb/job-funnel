@@ -35,7 +35,7 @@ export function ApplicationCard({
       className={clsx(
         'rounded-lg border border-zinc-200 bg-white p-3 shadow-sm',
         isDragging && 'opacity-50',
-        isDragOverlay && 'rotate-2 shadow-xl ring-2 ring-indigo-500',
+        isDragOverlay && 'rotate-2 shadow-xl ring-2 ring-teal-400',
       )}
     >
       {/* Top row — company name + drag handle */}
@@ -43,7 +43,7 @@ export function ApplicationCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/applications/${application.id}`}
-            className="block truncate text-sm font-semibold text-zinc-900 hover:text-indigo-600 transition-colors"
+            className="block truncate text-sm font-semibold text-zinc-900"
           >
             {application.company}
           </Link>
