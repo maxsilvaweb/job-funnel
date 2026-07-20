@@ -6,10 +6,10 @@ import {
   useApplications,
   useDeleteApplication,
 } from '@/lib/hooks/use-applications';
-import { Badge } from '@/components/ui/badge';
+import { StageStatusBadge } from '@/components/applications/stage-status-badge';
 import { Card } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
-import { STAGE_LABELS, SOURCE_LABELS } from '@/lib/constants';
+import { SOURCE_LABELS } from '@/lib/constants';
 import { formatDate } from '@/lib/utils/dates';
 import {
   ExternalLink,
@@ -221,7 +221,7 @@ export function ApplicationTable() {
                   {app.role}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge status={app.status}>{STAGE_LABELS[app.status]}</Badge>
+                  <StageStatusBadge status={app.status} />
                 </td>
                 <td className="px-4 py-3 text-zinc-500 text-xs">
                   {(() => {
@@ -268,9 +268,9 @@ export function ApplicationTable() {
                 <td className="px-4 py-3 text-xs">
                   {app.employment_type === 'contract' ? (
                     app.ir35_status === 'inside' ? (
-                      <span className="font-medium text-amber-600">Inside IR35</span>
+                      <span className="text-zinc-500">Inside IR35</span>
                     ) : app.ir35_status === 'outside' ? (
-                      <span className="font-medium text-emerald-600">Outside IR35</span>
+                      <span className="text-zinc-500">Outside IR35</span>
                     ) : (
                       <span className="text-zinc-400">Undetermined</span>
                     )

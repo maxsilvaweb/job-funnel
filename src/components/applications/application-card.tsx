@@ -96,13 +96,7 @@ export function ApplicationCard({
               </p>
               {application.ir35_status &&
                 application.ir35_status !== 'undetermined' && (
-                  <span
-                    className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${
-                      application.ir35_status === 'outside'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}
-                  >
+                  <span className="text-[10px] font-medium text-zinc-500">
                     {application.ir35_status === 'outside'
                       ? 'Outside IR35'
                       : 'Inside IR35'}

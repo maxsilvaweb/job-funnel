@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { sanitizePlainText } from '@/lib/utils/sanitize-text';
 
 function createAdminClient() {
   return createClient(
@@ -34,5 +35,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ users: data || [] });
+  const users = (data || []).map((user) => ({
+    ...user,
+    resume_text: sanitizePlainText(user.resume_text),
+  }));
+
+  return NextResponse.json({ users });
 }
