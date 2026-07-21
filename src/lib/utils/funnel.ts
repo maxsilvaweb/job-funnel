@@ -1,7 +1,14 @@
 // src/lib/utils/funnel.ts
 
-import type { Application, FunnelStage, ApplicationStatus } from '@/types';
+import type { Application, FunnelStage, ApplicationStatus, WeeklyTrendPoint } from '@/types';
 import { FUNNEL_STAGES, STAGE_LABELS, STAGE_COLOURS } from '@/lib/constants';
+import {
+  endOfWeek,
+  format,
+  parseISO,
+  startOfWeek,
+  subWeeks,
+} from 'date-fns';
 
 /**
  * Map a status to how far through the funnel it reached.
@@ -134,4 +141,54 @@ export function applicationsNeededForOffers(
   }
 
   return Math.ceil(targetOffers / (offerStage.conversionFromTop / 100));
+}
+
+/**
+ * Weekly application volume + cumulative total for the last N weeks.
+ * Weeks start Monday. Includes empty weeks so the line chart stays continuous.
+ */
+export function buildWeeklyApplicationTrend(
+  applications: Application[],
+  weekCount = 12,
+): WeeklyTrendPoint[] {
+  const now = new Date();
+  const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+  const buckets: WeeklyTrendPoint[] = [];
+  for (let i = weekCount - 1; i >= 0; i--) {
+    const weekStart = subWeeks(currentWeekStart, i);
+    buckets.push({
+      week: format(weekStart, 'd MMM'),
+      weekStart: format(weekStart, 'yyyy-MM-dd'),
+      applications: 0,
+      cumulative: 0,
+    });
+  }
+
+  const firstWeekStart = parseISO(buckets[0].weekStart);
+  const rangeEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  const bucketByKey = new Map(buckets.map((b) => [b.weekStart, b]));
+
+  for (const app of applications) {
+    if (!app.date_applied) continue;
+    const appliedAt = parseISO(app.date_applied);
+    if (appliedAt < firstWeekStart || appliedAt > rangeEnd) continue;
+
+    const key = format(startOfWeek(appliedAt, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const bucket = bucketByKey.get(key);
+    if (!bucket) continue;
+    bucket.applications += 1;
+  }
+
+  let running = applications.filter((app) => {
+    if (!app.date_applied) return false;
+    return parseISO(app.date_applied) < firstWeekStart;
+  }).length;
+
+  for (const bucket of buckets) {
+    running += bucket.applications;
+    bucket.cumulative = running;
+  }
+
+  return buckets;
 }

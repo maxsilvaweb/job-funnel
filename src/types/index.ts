@@ -121,6 +121,13 @@ export interface FunnelStage {
   colour: string;
 }
 
+export interface WeeklyTrendPoint {
+  week: string;
+  weekStart: string;
+  applications: number;
+  cumulative: number;
+}
+
 export interface Diagnosis {
   stage: string;
   severity: 'good' | 'warning' | 'critical';

@@ -40,7 +40,7 @@ export const STAGE_LABELS: Record<ApplicationStatus, string> = {
 };
 
 export const STAGE_COLOURS: Record<ApplicationStatus, string> = {
-  discovered: '#ec4899',
+  discovered: '#6366f1',
   applied: '#10b981',
   responded: '#0ea5e9',
   screening: '#f59e0b',

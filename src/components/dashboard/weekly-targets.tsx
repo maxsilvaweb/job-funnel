@@ -54,7 +54,7 @@ export function WeeklyTargets() {
             <>
               <p className="mt-1 text-sm text-zinc-900">
                 You need approximately{' '}
-                <span className="font-bold text-indigo-600">
+                <span className="font-bold text-emerald-600">
                   {metrics.applicationsNeededForOffer}
                 </span>{' '}
                 applications for{' '}
@@ -67,7 +67,7 @@ export function WeeklyTargets() {
                   3 competing offers
                 </span>{' '}
                 (ideal for negotiation):{' '}
-                <span className="font-bold text-indigo-600">
+                <span className="font-bold text-emerald-600">
                   {metrics.applicationsNeededForThreeOffers}
                 </span>{' '}
                 applications

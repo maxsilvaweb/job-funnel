@@ -3,15 +3,20 @@
 import { Shell } from '@/components/layout/shell';
 import { MetricsGrid } from '@/components/dashboard/metrics-grid';
 import { FunnelChart } from '@/components/dashboard/funnel-chart';
+import { ApplicationTrendChart } from '@/components/dashboard/application-trend-chart';
 import { ConversionRates } from '@/components/dashboard/conversion-rates';
 import { DiagnosisCard } from '@/components/dashboard/diagnosis-card';
 import { WeeklyTargets } from '@/components/dashboard/weekly-targets';
 import { getApplications } from '@/actions/applications';
-import { buildFunnelData } from '@/lib/utils/funnel';
+import {
+  buildFunnelData,
+  buildWeeklyApplicationTrend,
+} from '@/lib/utils/funnel';
 
 export default async function DashboardPage() {
   const { data: applications } = await getApplications();
   const initialFunnel = buildFunnelData(applications);
+  const weeklyTrend = buildWeeklyApplicationTrend(applications, 12);
 
   return (
     <Shell>
@@ -27,11 +32,13 @@ export default async function DashboardPage() {
         {/* Metrics */}
         <MetricsGrid />
 
-        {/* Funnel chart + conversion rates */}
-        <div className="space-y-6">
+        {/* Funnel + weekly trend */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <FunnelChart data={initialFunnel} />
-          <ConversionRates />
+          <ApplicationTrendChart data={weeklyTrend} />
         </div>
+
+        <ConversionRates />
 
         {/* Diagnosis + weekly targets */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -18,6 +18,7 @@ import { ApplicationCard } from './application-card';
 import { CLOSED_STAGES, STAGE_LABELS } from '@/lib/constants';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { Select } from '@/components/ui/select';
 import { clsx } from 'clsx';
 import type { Application, ApplicationStatus } from '@/types';
 
@@ -223,19 +224,19 @@ export function KanbanBoard() {
             Remote only
           </button>
 
-          <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600">
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white py-1.5 pl-3 pr-2 text-sm text-zinc-600">
             <span className="whitespace-nowrap">Min AI score</span>
-            <select
+            <Select
+              variant="ghost"
               value={minScore}
               onChange={(e) => setMinScore(Number(e.target.value))}
-              className="rounded border-0 bg-transparent text-sm font-medium text-zinc-900 focus:outline-none focus:ring-0"
             >
               {MIN_SCORE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           {filtersActive && (
