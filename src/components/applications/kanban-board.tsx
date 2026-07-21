@@ -1,7 +1,7 @@
 // src/components/applications/kanban-board.tsx
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -15,12 +15,12 @@ import {
 import { useApplications, useUpdateStatus } from '@/lib/hooks/use-applications';
 import { KanbanColumn } from './kanban-column';
 import { ApplicationCard } from './application-card';
-import { STAGE_LABELS } from '@/lib/constants';
+import { CLOSED_STAGES, STAGE_LABELS } from '@/lib/constants';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { clsx } from 'clsx';
 import type { Application, ApplicationStatus } from '@/types';
 
-// All stages that appear as columns including terminal ones
 const KANBAN_STAGES: ApplicationStatus[] = [
   'discovered',
   'applied',
@@ -34,10 +34,25 @@ const KANBAN_STAGES: ApplicationStatus[] = [
   'ghosted',
 ];
 
+const ACTIVE_STAGES = KANBAN_STAGES.filter(
+  (stage) => !CLOSED_STAGES.includes(stage),
+);
+
+const MIN_SCORE_OPTIONS = [
+  { value: 0, label: 'Any score' },
+  { value: 50, label: '50+' },
+  { value: 70, label: '70+' },
+  { value: 85, label: '85+' },
+] as const;
+
 export function KanbanBoard() {
   const { data: applications, isLoading, isError, error } = useApplications();
   const updateStatus = useUpdateStatus();
   const [activeApp, setActiveApp] = useState<Application | null>(null);
+
+  const [hideClosed, setHideClosed] = useState(true);
+  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [minScore, setMinScore] = useState(0);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -46,7 +61,6 @@ export function KanbanBoard() {
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // 1px tolerance to avoid sub-pixel rounding flicker
     setCanScrollLeft(el.scrollLeft > 1);
     setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
   }, []);
@@ -65,7 +79,7 @@ export function KanbanBoard() {
       el.removeEventListener('scroll', updateScrollState);
       observer.disconnect();
     };
-  }, [updateScrollState, applications]);
+  }, [updateScrollState, applications, hideClosed]);
 
   function scrollByDirection(direction: 'left' | 'right') {
     const el = scrollRef.current;
@@ -80,17 +94,30 @@ export function KanbanBoard() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        // Require 8px of movement before drag starts
-        // This prevents accidental drags when clicking links
         distance: 8,
       },
     }),
   );
 
-  const columns = KANBAN_STAGES.map((stage) => ({
+  const filteredApplications = useMemo(() => {
+    return (applications || []).filter((app) => {
+      if (remoteOnly && !app.remote) return false;
+      if (
+        minScore > 0 &&
+        (app.ai_score == null || app.ai_score < minScore)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [applications, remoteOnly, minScore]);
+
+  const visibleStages = hideClosed ? ACTIVE_STAGES : KANBAN_STAGES;
+
+  const columns = visibleStages.map((stage) => ({
     id: stage,
     label: STAGE_LABELS[stage],
-    applications: (applications || []).filter((a) => a.status === stage),
+    applications: filteredApplications.filter((a) => a.status === stage),
   }));
 
   function handleDragStart(event: DragStartEvent) {
@@ -155,6 +182,8 @@ export function KanbanBoard() {
     );
   }
 
+  const filtersActive = !hideClosed || remoteOnly || minScore > 0;
+
   return (
     <DndContext
       sensors={sensors}
@@ -163,49 +192,117 @@ export function KanbanBoard() {
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="relative">
-        {canScrollLeft && (
+      <div className="flex h-full min-h-[24rem] flex-col gap-3">
+        {/* Focus filters */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => scrollByDirection('left')}
-            aria-label="Scroll columns left"
-            className="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-emerald-600 bg-emerald-600 p-2 text-white shadow-md transition-colors hover:bg-emerald-700 hover:border-emerald-700"
+            onClick={() => setHideClosed((v) => !v)}
+            aria-pressed={hideClosed}
+            className={clsx(
+              'rounded-lg border px-3 py-1.5 text-sm transition-colors',
+              hideClosed
+                ? 'border-emerald-600 bg-emerald-50 font-medium text-emerald-700'
+                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
+            )}
           >
-            <ChevronLeft className="h-5 w-5" />
+            Hide closed
           </button>
-        )}
 
-        {canScrollRight && (
           <button
             type="button"
-            onClick={() => scrollByDirection('right')}
-            aria-label="Scroll columns right"
-            className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-emerald-600 bg-emerald-600 p-2 text-white shadow-md transition-colors hover:bg-emerald-700 hover:border-emerald-700"
+            onClick={() => setRemoteOnly((v) => !v)}
+            aria-pressed={remoteOnly}
+            className={clsx(
+              'rounded-lg border px-3 py-1.5 text-sm transition-colors',
+              remoteOnly
+                ? 'border-emerald-600 bg-emerald-50 font-medium text-emerald-700'
+                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900',
+            )}
           >
-            <ChevronRight className="h-5 w-5" />
+            Remote only
           </button>
-        )}
 
-        <div
-          ref={scrollRef}
-          className="kanban-scroll flex gap-4 overflow-x-auto pb-4"
-        >
-          {columns.map((col) => (
-            <KanbanColumn
-              key={col.id}
-              id={col.id}
-              label={col.label}
-              count={col.applications.length}
+          <label className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600">
+            <span className="whitespace-nowrap">Min AI score</span>
+            <select
+              value={minScore}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+              className="rounded border-0 bg-transparent text-sm font-medium text-zinc-900 focus:outline-none focus:ring-0"
             >
-              {col.applications.map((app) => (
-                <ApplicationCard key={app.id} application={app} />
+              {MIN_SCORE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
-            </KanbanColumn>
-          ))}
+            </select>
+          </label>
+
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={() => {
+                setHideClosed(true);
+                setRemoteOnly(false);
+                setMinScore(0);
+              }}
+              className="px-2 py-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-800"
+            >
+              Reset
+            </button>
+          )}
+
+          <span className="ml-auto text-xs text-zinc-400">
+            {filteredApplications.length} shown
+            {filteredApplications.length !== applications.length
+              ? ` of ${applications.length}`
+              : ''}
+          </span>
+        </div>
+
+        <div className="relative min-h-0 flex-1">
+          {canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => scrollByDirection('left')}
+              aria-label="Scroll columns left"
+              className="absolute left-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-emerald-600 bg-emerald-600 p-2 text-white shadow-md transition-colors hover:border-emerald-700 hover:bg-emerald-700"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          )}
+
+          {canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollByDirection('right')}
+              aria-label="Scroll columns right"
+              className="absolute right-1 top-1/2 z-10 -translate-y-1/2 rounded-full border border-emerald-600 bg-emerald-600 p-2 text-white shadow-md transition-colors hover:border-emerald-700 hover:bg-emerald-700"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          )}
+
+          <div
+            ref={scrollRef}
+            className="kanban-scroll flex h-full gap-4 overflow-x-auto overflow-y-hidden pb-1"
+          >
+            {columns.map((col) => (
+              <KanbanColumn
+                key={col.id}
+                id={col.id}
+                label={col.label}
+                count={col.applications.length}
+              >
+                {col.applications.map((app) => (
+                  <ApplicationCard key={app.id} application={app} />
+                ))}
+              </KanbanColumn>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Drag overlay — shown while dragging */}
       <DragOverlay>
         {activeApp ? (
           <ApplicationCard application={activeApp} isDragOverlay />

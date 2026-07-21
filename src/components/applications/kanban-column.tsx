@@ -27,36 +27,36 @@ export function KanbanColumn({
     <div
       ref={setNodeRef}
       className={clsx(
-        'flex w-72 shrink-0 flex-col rounded-xl border bg-white transition-colors',
+        'flex h-full w-72 shrink-0 flex-col overflow-hidden rounded-xl border bg-white transition-colors',
         isOver
           ? 'kanban-drop-active border-teal-400 bg-indigo-50'
           : 'border-zinc-200',
       )}
     >
-      {/* Column header */}
-      <div className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3">
+      {/* Sticky column header */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-4 py-3">
         <div
-          className="h-2.5 w-2.5 rounded-full shrink-0"
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: STAGE_COLOURS[id] }}
         />
-        <h3 className="text-sm font-semibold text-zinc-900 truncate flex-1">
+        <h3 className="flex-1 truncate text-sm font-semibold text-zinc-900">
           {label}
         </h3>
         <span
-          className="rounded-full px-2 py-0.5 text-xs font-medium text-white shrink-0"
+          className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-white"
           style={{ backgroundColor: STAGE_COLOURS[id] }}
         >
           {count}
         </span>
       </div>
 
-      {/* Cards */}
-      <div className="flex flex-1 flex-col gap-2 p-2 min-h-[120px]">
+      {/* Scrollable card list */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
         {children}
         {count === 0 && (
           <div
             className={clsx(
-              'flex h-24 items-center justify-center rounded-lg border-2 border-dashed text-xs transition-colors',
+              'flex h-24 shrink-0 items-center justify-center rounded-lg border-2 border-dashed text-xs transition-colors',
               isOver
                 ? 'border-teal-400 text-teal-400'
                 : 'border-zinc-200 text-zinc-400',

@@ -13,6 +13,14 @@ export const FUNNEL_STAGES: ApplicationStatus[] = [
   'accepted',
 ];
 
+/** Stages treated as closed / archive on the Kanban board. */
+export const CLOSED_STAGES: ApplicationStatus[] = [
+  'accepted',
+  'rejected',
+  'ghosted',
+  'withdrawn',
+];
+
 // src/lib/constants.ts
 
 // ... existing code ...

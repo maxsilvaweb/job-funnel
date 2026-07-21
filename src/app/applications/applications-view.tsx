@@ -19,9 +19,9 @@ export function ApplicationsView({ view }: ApplicationsViewProps) {
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className={clsx(view === 'kanban' && !showForm ? 'flex h-full flex-col gap-4' : 'space-y-6')}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex shrink-0 items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Applications</h1>
           <p className="mt-1 text-sm text-zinc-500">
@@ -95,7 +95,13 @@ export function ApplicationsView({ view }: ApplicationsViewProps) {
 
       {/* View */}
       {!showForm &&
-        (view === 'kanban' ? <KanbanBoard /> : <ApplicationTable />)}
+        (view === 'kanban' ? (
+          <div className="min-h-0 flex-1">
+            <KanbanBoard />
+          </div>
+        ) : (
+          <ApplicationTable />
+        ))}
     </div>
   );
 }
