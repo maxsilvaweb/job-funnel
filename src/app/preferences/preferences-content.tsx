@@ -8,10 +8,17 @@ import {
   useUpdatePreferences,
 } from '@/lib/hooks/use-preferences';
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Upload } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  FileText,
+  Loader2,
+  Upload,
+} from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/lib/hooks/use-toast';
+import { useUser } from '@/lib/hooks/use-user';
+import { waitForResumeNormalize } from '@/lib/utils/wait-for-resume-normalize';
 
 const EMPLOYMENT_TYPE_OPTIONS = [
   { value: 'permanent', label: 'Permanent' },
@@ -30,10 +37,49 @@ const WORK_MODE_OPTIONS = [
   { value: 'onsite', label: 'On-site' },
 ];
 
+type LastResumeUpload = {
+  fileName: string;
+  uploadedAt: string;
+};
+
+function resumeUploadStorageKey(userId: string) {
+  return `job-funnel:last-resume-upload:${userId}`;
+}
+
+function readLastResumeUpload(userId: string): LastResumeUpload | null {
+  try {
+    const raw = localStorage.getItem(resumeUploadStorageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LastResumeUpload;
+    if (!parsed?.fileName || !parsed?.uploadedAt) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastResumeUpload(userId: string, upload: LastResumeUpload) {
+  localStorage.setItem(resumeUploadStorageKey(userId), JSON.stringify(upload));
+}
+
+function formatResumeUploadStamp(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function PreferencesContent() {
   const { data: prefs, isLoading } = usePreferences();
   const updatePrefs = useUpdatePreferences();
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { userId } = useUser();
+  const { toast, dismiss } = useToast();
   const [saving, setSaving] = useState(false);
 
   const [automationEnabled, setAutomationEnabled] = useState(true);
@@ -54,13 +100,26 @@ export default function PreferencesContent() {
   );
   const [resumeText, setResumeText] = useState('');
   const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumeUploadedAt, setResumeUploadedAt] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [showResumeEditor, setShowResumeEditor] = useState(false);
+  const [resumeEditorAllowed, setResumeEditorAllowed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hydratedResumeRef = useRef(false);
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifyEmailAddress, setNotifyEmailAddress] = useState('');
 
   useEffect(() => {
+    if (!userId) return;
+    const last = readLastResumeUpload(userId);
+    if (!last) return;
+    setResumeFileName(last.fileName);
+    setResumeUploadedAt(last.uploadedAt);
+  }, [userId]);
+
+  useEffect(() => {
     if (!prefs) return;
+
     setAutomationEnabled(prefs.automation_enabled);
     setMinScore(prefs.min_ai_score);
     setEmploymentTypes(prefs.employment_types);
@@ -69,10 +128,26 @@ export default function PreferencesContent() {
     setPreferredLocations(prefs.preferred_locations.join(', '));
     setTargetRoles(prefs.target_roles.join(', '));
     setTargetKeywords(prefs.target_keywords.join(', '));
-    setResumeText(prefs.resume_text);
     setNotifyEmail(prefs.notify_email);
     setNotifyEmailAddress(prefs.notify_email_address ?? '');
-  }, [prefs]);
+
+    // While uploading/processing, do not sync or reveal resume text
+    if (extracting) return;
+
+    // First load only: allow the CV toggle if a structured CV already exists
+    if (!hydratedResumeRef.current) {
+      hydratedResumeRef.current = true;
+      setResumeText(prefs.resume_text);
+      if (prefs.resume_text.trim()) {
+        setResumeEditorAllowed(true);
+      }
+      return;
+    }
+
+    if (resumeEditorAllowed) {
+      setResumeText(prefs.resume_text);
+    }
+  }, [prefs, extracting, resumeEditorAllowed]);
 
   function toggleArrayValue(
     arr: string[],
@@ -89,7 +164,20 @@ export default function PreferencesContent() {
   async function handleResumeUpload(file: File | null) {
     if (!file) return;
 
+    const fileName = file.name;
+    const previousResumeText = resumeText;
+    const hadPreviousEditor = resumeEditorAllowed;
     setExtracting(true);
+    setShowResumeEditor(false);
+    setResumeEditorAllowed(false);
+
+    const processingToastId = toast({
+      title: 'Uploading and processing',
+      description: fileName,
+      variant: 'info',
+      duration: 0,
+    });
+
     try {
       const body = new FormData();
       body.append('file', file);
@@ -109,16 +197,61 @@ export default function PreferencesContent() {
         throw new Error(payload.error || 'Failed to extract text from file.');
       }
 
-      setResumeText(payload.text);
-      setResumeFileName(payload.fileName || file.name);
+      await updatePrefs.mutateAsync({ resume_text: payload.text });
+
+      const normalizeResponse = await fetch('/api/resume/queue-normalize', {
+        method: 'POST',
+      });
+      const normalizePayload = (await normalizeResponse.json().catch(() => ({
+        queued: false,
+        reason: 'unknown',
+      }))) as { queued?: boolean; reason?: string; error?: string };
+
+      if (!normalizeResponse.ok || !normalizePayload.queued) {
+        const reason = normalizePayload.reason || normalizePayload.error;
+        throw new Error(
+          reason === 'webhook_not_configured'
+            ? 'Normalize webhook is not configured.'
+            : reason === 'webhook_failed'
+              ? 'Could not reach the normalize workflow.'
+              : reason === 'empty_resume'
+                ? 'No resume text to normalize.'
+                : 'Normalize workflow failed.',
+        );
+      }
+
+      // Wait until n8n has written markdown back — only then allow the editor
+      const normalizedText = await waitForResumeNormalize(payload.text);
+      setResumeText(normalizedText);
+      await queryClient.invalidateQueries({ queryKey: ['preferences'] });
+
+      const uploadedAt = new Date().toISOString();
+      const savedName = payload.fileName || fileName;
+      setResumeFileName(savedName);
+      setResumeUploadedAt(uploadedAt);
+      if (userId) {
+        writeLastResumeUpload(userId, {
+          fileName: savedName,
+          uploadedAt,
+        });
+      }
+
+      dismiss(processingToastId);
+      setResumeEditorAllowed(true);
       toast({
-        title: 'CV uploaded',
-        description: `Extracted text from ${payload.fileName || file.name}. Review it, then save — n8n will structure it into markdown.`,
+        title: 'CV ready',
+        description: `${savedName} has been structured into markdown.`,
         variant: 'success',
       });
     } catch (err) {
+      dismiss(processingToastId);
+      // Restore prior CV if we had a completed one before this attempt
+      if (hadPreviousEditor && previousResumeText.trim()) {
+        setResumeText(previousResumeText);
+        setResumeEditorAllowed(true);
+      }
       toast({
-        title: 'Could not read CV',
+        title: 'Could not process CV',
         description:
           err instanceof Error ? err.message : 'Please try another file.',
         variant: 'error',
@@ -158,18 +291,9 @@ export default function PreferencesContent() {
         notify_email_address: notifyEmailAddress || null,
       });
 
-      // Ask n8n to structure the saved CV into markdown (fire-and-forget)
-      if (resumeText.trim()) {
-        void fetch('/api/resume/queue-normalize', { method: 'POST' }).catch(
-          () => undefined,
-        );
-      }
-
       toast({
         title: 'Preferences saved',
-        description: resumeText.trim()
-          ? 'Settings saved. Your CV will be structured into markdown shortly.'
-          : 'Your automation settings have been updated.',
+        description: 'Your automation settings have been updated.',
         variant: 'success',
       });
     } catch (err) {
@@ -204,267 +328,316 @@ export default function PreferencesContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Automation</CardTitle>
-        </CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-zinc-700">
-              Morning job hunt
-            </p>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Automatically discover and score jobs every morning at 6am
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAutomationEnabled(!automationEnabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              automationEnabled ? 'bg-emerald-600' : 'bg-zinc-200'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                automationEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Minimum Match Score</CardTitle>
-        </CardHeader>
-        <p className="text-sm text-zinc-500 mb-4">
-          Only jobs scoring above this threshold will appear in your dashboard.
-        </p>
-        <Slider
-          label="Threshold"
-          value={minScore}
-          onChange={setMinScore}
-          min={50}
-          max={95}
-          step={5}
-          formatValue={(v) => `Min score ${v}`}
-          minLabel="50 — cast wide net"
-          maxLabel="95 — perfect match only"
-        />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Employment Type</CardTitle>
-        </CardHeader>
-        <div className="flex gap-3">
-          {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() =>
-                toggleArrayValue(employmentTypes, opt.value, setEmploymentTypes)
-              }
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                employmentTypes.includes(opt.value)
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                  : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {employmentTypes.includes('contract') && (
-          <div className="mt-4">
-            <p className="mb-2 text-sm font-medium text-zinc-700">
-              IR35 Preference
-            </p>
-            <div className="flex gap-3">
-              {IR35_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setIr35Preference(opt.value)}
-                  className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
-                    ir35Preference === opt.value
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                      : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+        <Card>
+          <CardHeader>
+            <CardTitle>Automation</CardTitle>
+          </CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-700">
+                Morning job hunt
+              </p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Automatically discover and score jobs every morning at 6am
+              </p>
             </div>
-          </div>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Work Mode</CardTitle>
-        </CardHeader>
-        <div className="flex gap-3">
-          {WORK_MODE_OPTIONS.map((opt) => (
             <button
-              key={opt.value}
               type="button"
-              onClick={() =>
-                toggleArrayValue(workModes, opt.value, setWorkModes)
-              }
-              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                workModes.includes(opt.value)
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                  : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+              onClick={() => setAutomationEnabled(!automationEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                automationEnabled ? 'bg-emerald-600' : 'bg-zinc-200'
               }`}
             >
-              {opt.label}
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  automationEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
             </button>
-          ))}
-        </div>
-      </Card>
+          </div>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Preferred Locations</CardTitle>
-        </CardHeader>
-        <p className="mb-3 text-sm text-zinc-500">
-          Comma separated list of locations you are open to.
-        </p>
-        <input
-          type="text"
-          value={preferredLocations}
-          onChange={(e) => setPreferredLocations(e.target.value)}
-          placeholder="Remote, London, Manchester"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-        />
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Minimum Match Score</CardTitle>
+          </CardHeader>
+          <p className="text-sm text-zinc-500 mb-4">
+            Only jobs scoring above this threshold will appear in your
+            dashboard.
+          </p>
+          <Slider
+            label="Threshold"
+            value={minScore}
+            onChange={setMinScore}
+            min={50}
+            max={95}
+            step={5}
+            formatValue={(v) => `Min score ${v}`}
+            minLabel="50 — cast wide net"
+            maxLabel="95 — perfect match only"
+          />
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Target Roles</CardTitle>
-        </CardHeader>
-        <p className="mb-3 text-sm text-zinc-500">
-          Comma separated list of job titles you are targeting.
-        </p>
-        <input
-          type="text"
-          value={targetRoles}
-          onChange={(e) => setTargetRoles(e.target.value)}
-          placeholder="Senior Full Stack Engineer, Lead Engineer"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-        />
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Employment Type</CardTitle>
+          </CardHeader>
+          <div className="flex gap-3">
+            {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() =>
+                  toggleArrayValue(
+                    employmentTypes,
+                    opt.value,
+                    setEmploymentTypes,
+                  )
+                }
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                  employmentTypes.includes(opt.value)
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Target Keywords</CardTitle>
-        </CardHeader>
-        <p className="mb-3 text-sm text-zinc-500">
-          Comma separated tech keywords the AI uses to match jobs against your
-          profile.
-        </p>
-        <input
-          type="text"
-          value={targetKeywords}
-          onChange={(e) => setTargetKeywords(e.target.value)}
-          placeholder="next.js, react, typescript, node, supabase"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-        />
-      </Card>
+          {employmentTypes.includes('contract') && (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-medium text-zinc-700">
+                IR35 Preference
+              </p>
+              <div className="flex gap-3">
+                {IR35_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setIr35Preference(opt.value)}
+                    className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+                      ir35Preference === opt.value
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
 
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Your CV / Resume</CardTitle>
-        </CardHeader>
-        <p className="mb-3 text-sm text-zinc-500">
-          Upload a PDF, DOCX, or TXT file. We extract the text here; after you
-          save, n8n structures it into markdown for AI job scoring. You can
-          edit the text below before saving.
-        </p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Work Mode</CardTitle>
+          </CardHeader>
+          <div className="flex gap-3">
+            {WORK_MODE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() =>
+                  toggleArrayValue(workModes, opt.value, setWorkModes)
+                }
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                  workModes.includes(opt.value)
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                    : 'border-zinc-200 text-zinc-500 hover:border-zinc-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </Card>
 
-        <div className="mb-3 flex flex-wrap items-center gap-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Preferred Locations</CardTitle>
+          </CardHeader>
+          <p className="mb-3 text-sm text-zinc-500">
+            Comma separated list of locations you are open to.
+          </p>
+          <input
+            type="text"
+            value={preferredLocations}
+            onChange={(e) => setPreferredLocations(e.target.value)}
+            placeholder="Remote, London, Manchester"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Target Roles</CardTitle>
+          </CardHeader>
+          <p className="mb-3 text-sm text-zinc-500">
+            Comma separated list of job titles you are targeting.
+          </p>
+          <input
+            type="text"
+            value={targetRoles}
+            onChange={(e) => setTargetRoles(e.target.value)}
+            placeholder="Senior Full Stack Engineer, Lead Engineer"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Target Keywords</CardTitle>
+          </CardHeader>
+          <p className="mb-3 text-sm text-zinc-500">
+            Comma separated tech keywords the AI uses to match jobs against your
+            profile.
+          </p>
+          <input
+            type="text"
+            value={targetKeywords}
+            onChange={(e) => setTargetKeywords(e.target.value)}
+            placeholder="next.js, react, typescript, node, supabase"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Your CV / Resume</CardTitle>
+          </CardHeader>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p className="text-sm text-zinc-500">
+              Upload a PDF, DOCX, or TXT file.
+            </p>
+            {resumeFileName && resumeUploadedAt && (
+              <p className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+                <FileText className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                <span className="font-medium text-zinc-700">{resumeFileName}</span>
+                <span aria-hidden="true">·</span>
+                <span>{formatResumeUploadStamp(resumeUploadedAt)}</span>
+              </p>
+            )}
+          </div>
+
           <input
             ref={fileInputRef}
             type="file"
             accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
             className="sr-only"
-            onChange={(e) =>
-              handleResumeUpload(e.target.files?.[0] ?? null)
-            }
+            onChange={(e) => handleResumeUpload(e.target.files?.[0] ?? null)}
           />
+
           <button
             type="button"
             disabled={extracting}
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="group flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50 px-4 py-8 text-center transition-colors hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {extracting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {extracting ? 'Extracting…' : 'Upload CV'}
-          </button>
-          {resumeFileName && (
-            <span className="text-xs text-zinc-500">
-              Last upload: {resumeFileName}
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-white">
+              {extracting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Upload className="h-5 w-5" />
+              )}
             </span>
-          )}
-          <span className="text-xs text-zinc-400">Max 5MB · PDF, DOCX, TXT</span>
-        </div>
+            <span className="text-sm font-semibold text-emerald-700">
+              {extracting ? 'Uploading and processing…' : 'Upload CV'}
+            </span>
+            <span className="text-xs text-emerald-700/80">
+              PDF, DOCX, or TXT · Max 5MB
+            </span>
+          </button>
 
-        <textarea
-          value={resumeText}
-          onChange={(e) => setResumeText(e.target.value)}
-          rows={12}
-          placeholder="Upload a CV, or paste plain text here…"
-          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
-        />
-        <p className="mt-1 text-xs text-zinc-400">
-          {resumeText.length} characters
-          {resumeText.length >= 8000 ? ' (stored text may be truncated)' : ''}
-        </p>
-      </Card>
-
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Email Notifications</CardTitle>
-        </CardHeader>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="notify_email"
-              checked={notifyEmail}
-              onChange={(e) => setNotifyEmail(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-            />
-            <label
-              htmlFor="notify_email"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Send me a daily summary of discovered jobs
-            </label>
-          </div>
-
-          {notifyEmail && (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                Email address
-              </label>
-              <input
-                type="email"
-                value={notifyEmailAddress}
-                onChange={(e) => setNotifyEmailAddress(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
+          {!extracting && (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-zinc-500">
+                {resumeEditorAllowed && resumeText.trim()
+                  ? `${resumeText.length.toLocaleString()} characters saved (8000 max characters limit)${
+                      resumeText.length >= 8000 ? ' — may be truncated' : ''
+                    }`
+                  : 'Available after your CV has been structured (8000 max characters limit)'}
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <p className="text-sm font-medium text-zinc-700">
+                  {showResumeEditor ? 'Hide CV text' : 'Show CV text'}
+                </p>
+                <button
+                  type="button"
+                  disabled={!resumeEditorAllowed}
+                  onClick={() => setShowResumeEditor((open) => !open)}
+                  aria-pressed={showResumeEditor}
+                  aria-label={
+                    showResumeEditor ? 'Hide CV text' : 'Show CV text'
+                  }
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    showResumeEditor ? 'bg-emerald-600' : 'bg-emerald-900'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      showResumeEditor ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           )}
-        </div>
-      </Card>
+
+          {resumeEditorAllowed && showResumeEditor && !extracting && (
+            <div className="mt-3">
+              <textarea
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+                rows={12}
+                placeholder="Structured CV markdown will appear here after upload completes…"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <p className="mt-1 text-xs text-zinc-400">
+                Edit and save preferences if you change this manually.
+              </p>
+            </div>
+          )}
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Email Notifications</CardTitle>
+          </CardHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="notify_email"
+                checked={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.checked)}
+                className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <label
+                htmlFor="notify_email"
+                className="text-sm font-medium text-zinc-700"
+              >
+                Send me a daily summary of discovered jobs
+              </label>
+            </div>
+
+            {notifyEmail && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                  Email address
+                </label>
+                <input
+                  type="email"
+                  value={notifyEmailAddress}
+                  onChange={(e) => setNotifyEmailAddress(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
 
       <div className="flex items-center justify-end gap-3">
