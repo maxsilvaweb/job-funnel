@@ -4,13 +4,15 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/lib/hooks/use-user';
 import type { Application, ApplicationStatus } from '@/types';
 
 export function useApplications() {
   const supabase = createClient();
+  const { userId } = useUser();
 
   return useQuery({
-    queryKey: ['applications'],
+    queryKey: ['applications', userId],
     queryFn: async (): Promise<Application[]> => {
       const { data, error } = await supabase
         .from('applications')
@@ -20,14 +22,17 @@ export function useApplications() {
       if (error) throw error;
       return data || [];
     },
+    enabled: !!userId,
+    staleTime: 0,
   });
 }
 
 export function useApplication(id: string) {
   const supabase = createClient();
+  const { userId } = useUser();
 
   return useQuery({
-    queryKey: ['applications', id],
+    queryKey: ['applications', userId, id],
     queryFn: async (): Promise<Application> => {
       const { data, error } = await supabase
         .from('applications')
@@ -38,7 +43,8 @@ export function useApplication(id: string) {
       if (error) throw error;
       return data;
     },
-    enabled: !!id,
+    enabled: !!id && !!userId,
+    staleTime: 0,
   });
 }
 

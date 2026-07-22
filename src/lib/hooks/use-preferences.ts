@@ -4,13 +4,15 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/lib/hooks/use-user';
 import type { UserPreferences } from '@/types';
 
 export function usePreferences() {
   const supabase = createClient();
+  const { userId } = useUser();
 
   return useQuery({
-    queryKey: ['preferences'],
+    queryKey: ['preferences', userId],
     queryFn: async (): Promise<UserPreferences | null> => {
       const { data, error } = await supabase
         .from('user_preferences')
@@ -20,6 +22,8 @@ export function usePreferences() {
       if (error) return null;
       return data;
     },
+    enabled: !!userId,
+    staleTime: 0,
   });
 }
 

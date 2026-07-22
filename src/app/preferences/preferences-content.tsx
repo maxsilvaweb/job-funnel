@@ -7,8 +7,8 @@ import {
   usePreferences,
   useUpdatePreferences,
 } from '@/lib/hooks/use-preferences';
-import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, Upload } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/lib/hooks/use-toast';
@@ -53,6 +53,9 @@ export default function PreferencesContent() {
     'next.js, react, typescript, node',
   );
   const [resumeText, setResumeText] = useState('');
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifyEmailAddress, setNotifyEmailAddress] = useState('');
 
@@ -83,6 +86,51 @@ export default function PreferencesContent() {
     }
   }
 
+  async function handleResumeUpload(file: File | null) {
+    if (!file) return;
+
+    setExtracting(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+
+      const response = await fetch('/api/resume/extract', {
+        method: 'POST',
+        body,
+      });
+
+      const payload = (await response.json()) as {
+        text?: string;
+        fileName?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.text) {
+        throw new Error(payload.error || 'Failed to extract text from file.');
+      }
+
+      setResumeText(payload.text);
+      setResumeFileName(payload.fileName || file.name);
+      toast({
+        title: 'CV uploaded',
+        description: `Extracted text from ${payload.fileName || file.name}. Review it, then save — n8n will structure it into markdown.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      toast({
+        title: 'Could not read CV',
+        description:
+          err instanceof Error ? err.message : 'Please try another file.',
+        variant: 'error',
+      });
+    } finally {
+      setExtracting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }
+
   async function handleSave() {
     setSaving(true);
 
@@ -110,9 +158,18 @@ export default function PreferencesContent() {
         notify_email_address: notifyEmailAddress || null,
       });
 
+      // Ask n8n to structure the saved CV into markdown (fire-and-forget)
+      if (resumeText.trim()) {
+        void fetch('/api/resume/queue-normalize', { method: 'POST' }).catch(
+          () => undefined,
+        );
+      }
+
       toast({
         title: 'Preferences saved',
-        description: 'Your automation settings have been updated.',
+        description: resumeText.trim()
+          ? 'Settings saved. Your CV will be structured into markdown shortly.'
+          : 'Your automation settings have been updated.',
         variant: 'success',
       });
     } catch (err) {
@@ -322,18 +379,52 @@ export default function PreferencesContent() {
           <CardTitle>Your CV / Resume</CardTitle>
         </CardHeader>
         <p className="mb-3 text-sm text-zinc-500">
-          Paste your CV here. The AI uses this to score how well each job
-          matches your experience.
+          Upload a PDF, DOCX, or TXT file. We extract the text here; after you
+          save, n8n structures it into markdown for AI job scoring. You can
+          edit the text below before saving.
         </p>
+
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+            className="sr-only"
+            onChange={(e) =>
+              handleResumeUpload(e.target.files?.[0] ?? null)
+            }
+          />
+          <button
+            type="button"
+            disabled={extracting}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {extracting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {extracting ? 'Extracting…' : 'Upload CV'}
+          </button>
+          {resumeFileName && (
+            <span className="text-xs text-zinc-500">
+              Last upload: {resumeFileName}
+            </span>
+          )}
+          <span className="text-xs text-zinc-400">Max 5MB · PDF, DOCX, TXT</span>
+        </div>
+
         <textarea
           value={resumeText}
           onChange={(e) => setResumeText(e.target.value)}
           rows={12}
-          placeholder="Paste your CV here in plain text..."
+          placeholder="Upload a CV, or paste plain text here…"
           className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
         />
         <p className="mt-1 text-xs text-zinc-400">
           {resumeText.length} characters
+          {resumeText.length >= 8000 ? ' (stored text may be truncated)' : ''}
         </p>
       </Card>
 

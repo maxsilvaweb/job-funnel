@@ -1,8 +1,8 @@
 // src/components/layout/header.tsx
 
 import { createClient } from '@/lib/supabase/server';
-import { signOut } from '@/lib/actions/auth';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { SignOutButton } from '@/components/layout/sign-out-button';
 import { User } from 'lucide-react';
 
 export async function Header() {
@@ -23,14 +23,7 @@ export async function Header() {
           </span>
         )}
         <ThemeToggle />
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
-          >
-            Sign out
-          </button>
-        </form>
+        {user && <SignOutButton />}
       </div>
     </header>
   );
