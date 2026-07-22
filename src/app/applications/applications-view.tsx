@@ -30,48 +30,54 @@ export function ApplicationsView({ view }: ApplicationsViewProps) {
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Applications</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">
+            {showForm ? 'New Application' : 'Applications'}
+          </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Track every application through the funnel
+            {showForm
+              ? 'Enter company, role, and stage details — then save'
+              : 'Track every application through the funnel'}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* View toggle */}
-          <div className="flex rounded-lg border border-zinc-200">
-            <Link
-              href="/applications"
-              className={clsx(
-                'flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 text-sm transition-colors',
-                view === 'table'
-                  ? 'bg-emerald-50 text-emerald-700 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-700',
-              )}
-            >
-              <Table2 className="h-4 w-4" />
-              Table
-            </Link>
-            <Link
-              href="/kanban"
-              className={clsx(
-                'flex items-center gap-1.5 rounded-r-lg px-3 py-1.5 text-sm transition-colors',
-                view === 'kanban'
-                  ? 'bg-emerald-50 text-emerald-700 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-700',
-              )}
-            >
-              <Kanban className="h-4 w-4" />
-              Kanban
-            </Link>
-          </div>
+          {/* View toggle — only when browsing, not while adding */}
+          {!showForm && (
+            <div className="flex rounded-lg border border-zinc-200">
+              <Link
+                href="/applications"
+                className={clsx(
+                  'flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 text-sm transition-colors',
+                  view === 'table'
+                    ? 'bg-emerald-50 text-emerald-700 font-medium'
+                    : 'text-zinc-500 hover:text-zinc-700',
+                )}
+              >
+                <Table2 className="h-4 w-4" />
+                Table
+              </Link>
+              <Link
+                href="/kanban"
+                className={clsx(
+                  'flex items-center gap-1.5 rounded-r-lg px-3 py-1.5 text-sm transition-colors',
+                  view === 'kanban'
+                    ? 'bg-emerald-50 text-emerald-700 font-medium'
+                    : 'text-zinc-500 hover:text-zinc-700',
+                )}
+              >
+                <Kanban className="h-4 w-4" />
+                Kanban
+              </Link>
+            </div>
+          )}
 
-          {/* Add button */}
+          {/* Add / Cancel */}
           <button
             onClick={() => setShowForm(!showForm)}
             className={clsx(
               'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-colors',
               showForm
-                ? 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                ? 'border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50'
                 : 'bg-indigo-600 text-white hover:bg-indigo-700',
             )}
           >
@@ -93,9 +99,6 @@ export function ApplicationsView({ view }: ApplicationsViewProps) {
       {/* Inline form */}
       {showForm && (
         <Card>
-          <h2 className="mb-6 text-lg font-semibold text-zinc-900">
-            New Application
-          </h2>
           <ApplicationForm onSuccess={() => setShowForm(false)} />
         </Card>
       )}

@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
   Loader2,
+  Save,
   Upload,
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -647,7 +648,11 @@ export default function PreferencesContent() {
           disabled={saving}
           className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
         >
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {saving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
           {saving ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>

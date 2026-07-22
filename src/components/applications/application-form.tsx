@@ -8,6 +8,7 @@ import { SOURCE_LABELS } from '@/lib/constants';
 import { Slider } from '@/components/ui/slider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { CheckCircle2, LogOut, Save } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { Application } from '@/types';
 import type {
@@ -19,7 +20,42 @@ import type {
 
 interface ApplicationFormProps {
   application?: Application;
+  /** Called when the user is finished (edit save, or create + Done). */
   onSuccess?: () => void;
+}
+
+type StickyCreateDefaults = {
+  employment_type: EmploymentType;
+  source: ApplicationSource;
+  status: ApplicationStatus;
+  date_applied: string;
+  salary_currency: string;
+  remote: boolean;
+};
+
+function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
+  return {
+    company: '',
+    role: '',
+    employment_type: (sticky?.employment_type ?? 'permanent') as EmploymentType,
+    source: (sticky?.source ?? 'linkedin') as ApplicationSource,
+    status: (sticky?.status ?? 'applied') as ApplicationStatus,
+    date_applied:
+      sticky?.date_applied ?? new Date().toISOString().split('T')[0],
+    salary_min: null as number | null,
+    salary_max: null as number | null,
+    salary_currency: sticky?.salary_currency ?? 'GBP',
+    day_rate_min: null as number | null,
+    day_rate_max: null as number | null,
+    ir35_status: 'undetermined' as IR35Status,
+    location: '',
+    remote: sticky?.remote ?? false,
+    job_url: '',
+    contact_name: '',
+    contact_email: '',
+    notes: '',
+    priority: 0,
+  };
 }
 
 export function ApplicationForm({
@@ -28,6 +64,9 @@ export function ApplicationForm({
 }: ApplicationFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justCreatedCompany, setJustCreatedCompany] = useState<string | null>(
+    null,
+  );
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -86,7 +125,24 @@ export function ApplicationForm({
             : `${value.company} has been added to your funnel.`,
           variant: 'success',
         });
-        onSuccess?.();
+
+        if (application) {
+          onSuccess?.();
+          return;
+        }
+
+        // Create: reset for another entry, keep useful defaults
+        form.reset(
+          emptyCreateValues({
+            employment_type: value.employment_type,
+            source: value.source,
+            status: value.status,
+            date_applied: value.date_applied,
+            salary_currency: value.salary_currency,
+            remote: value.remote,
+          }),
+        );
+        setJustCreatedCompany(value.company);
       } catch {
         const message = 'Something went wrong. Please try again.';
         setError(message);
@@ -103,6 +159,11 @@ export function ApplicationForm({
     },
   });
 
+  function handleDone() {
+    setJustCreatedCompany(null);
+    onSuccess?.();
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -112,6 +173,30 @@ export function ApplicationForm({
       }}
       className="space-y-6"
     >
+      {justCreatedCompany && !application && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-zinc-900">
+                {justCreatedCompany} added
+              </p>
+              <p className="mt-0.5 text-sm text-zinc-700">
+                Form cleared for another entry. Add another or you&apos;re done.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDone}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            >
+              Done
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {error}
@@ -532,17 +617,30 @@ export function ApplicationForm({
       </form.Field>
 
       {/* Submit */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {justCreatedCompany && !application && (
+          <button
+            type="button"
+            onClick={handleDone}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+          >
+            Done
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        )}
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50"
         >
+          <Save className="h-3.5 w-3.5" />
           {submitting
             ? 'Saving...'
             : application
               ? 'Update Application'
-              : 'Add Application'}
+              : justCreatedCompany
+                ? 'Save'
+                : 'Add Application'}
         </button>
       </div>
     </form>
