@@ -31,7 +31,7 @@ export default async function ApplicationDetailPage({ params }: Props) {
 
   return (
     <Shell>
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
         {/* Back + title */}
         <div className="flex items-start gap-4">
           <Link
@@ -53,7 +53,7 @@ export default async function ApplicationDetailPage({ params }: Props) {
                   href={application.job_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 transition-colors hover:text-emerald-600 hover:underline"
                 >
                   <ExternalLink className="h-3 w-3" />
                   View Job

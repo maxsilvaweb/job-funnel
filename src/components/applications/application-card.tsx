@@ -133,7 +133,7 @@ export function ApplicationCard({
               href={application.job_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-400 hover:text-indigo-500 transition-colors"
+              className="text-zinc-400 transition-colors hover:text-emerald-600"
               onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink className="h-3 w-3" />

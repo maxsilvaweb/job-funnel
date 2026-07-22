@@ -35,7 +35,7 @@ import {
   Search,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState, type SVGProps, type ComponentType } from 'react';
+import { useMemo, useState, useEffect, type SVGProps, type ComponentType } from 'react';
 import { clsx } from 'clsx';
 import type {
   Application,
@@ -44,6 +44,12 @@ import type {
   EmploymentType,
 } from '@/types';
 import { useToast } from '@/lib/hooks/use-toast';
+import {
+  DEFAULT_PAGE_SIZE,
+  Pagination,
+  getTotalPages,
+  paginateItems,
+} from '@/components/ui/pagination';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -221,6 +227,8 @@ export function ApplicationTable() {
   const [hideClosed, setHideClosed] = useState(true);
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [minScore, setMinScore] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   function handleSort(field: SortField) {
     if (sortField === field) {
@@ -239,6 +247,7 @@ export function ApplicationTable() {
     setHideClosed(true);
     setRemoteOnly(false);
     setMinScore(0);
+    setPage(1);
   }
 
   async function handleDelete(id: string, company: string) {
@@ -353,6 +362,31 @@ export function ApplicationTable() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
   }, [filtered, sortField, sortDirection]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    search,
+    statusFilter,
+    sourceFilter,
+    typeFilter,
+    hideClosed,
+    remoteOnly,
+    minScore,
+    sortField,
+    sortDirection,
+    pageSize,
+  ]);
+
+  useEffect(() => {
+    const totalPages = getTotalPages(sorted.length, pageSize);
+    if (page > totalPages) setPage(totalPages);
+  }, [sorted.length, pageSize, page]);
+
+  const paged = useMemo(
+    () => paginateItems(sorted, page, pageSize),
+    [sorted, page, pageSize],
+  );
 
   const filtersActive =
     search.trim() !== '' ||
@@ -617,15 +651,28 @@ export function ApplicationTable() {
                   </td>
                 </tr>
               ) : (
-                sorted.map((app) => (
+                paged.map((app) => (
                   <tr
                     key={app.id}
-                    className="table-row-hover cursor-pointer hover:bg-zinc-50 transition-colors"
+                    className={clsx(
+                      'table-row-hover transition-colors',
+                      app.job_url
+                        ? 'cursor-pointer hover:bg-zinc-50'
+                        : 'hover:bg-zinc-50/60',
+                    )}
+                    onClick={() => {
+                      if (!app.job_url) return;
+                      window.open(app.job_url, '_blank', 'noopener,noreferrer');
+                    }}
+                    title={
+                      app.job_url ? 'Open job posting in a new tab' : undefined
+                    }
                   >
                     <td className="px-4 py-3">
                       <Link
                         href={`/applications/${app.id}`}
-                        className="font-medium text-zinc-900 hover:text-indigo-600 transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-medium text-zinc-900 transition-colors hover:text-emerald-700"
                       >
                         {app.company}
                       </Link>
@@ -715,7 +762,10 @@ export function ApplicationTable() {
                         <span className="text-zinc-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center gap-1.5">
                         <Link
                           href={`/applications/${app.id}/edit`}
@@ -760,12 +810,14 @@ export function ApplicationTable() {
           </table>
         </div>
         <div className="border-t border-zinc-100 px-4 py-3">
-          <p className="text-xs text-zinc-400">
-            {sorted.length} application{sorted.length !== 1 ? 's' : ''}
-            {sorted.length !== applications.length
-              ? ` shown of ${applications.length}`
-              : ''}
-          </p>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={sorted.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="applications"
+          />
         </div>
       </Card>
     </div>

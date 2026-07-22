@@ -119,6 +119,8 @@ export interface FunnelStage {
   conversionFromPrevious: number;
   conversionFromTop: number;
   colour: string;
+  /** Progression stages shrink down the funnel; outcomes are absolute terminal counts. */
+  kind?: 'progression' | 'outcome';
 }
 
 export interface WeeklyTrendPoint {

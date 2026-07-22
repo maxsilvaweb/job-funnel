@@ -19,7 +19,14 @@ export function ApplicationsView({ view }: ApplicationsViewProps) {
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <div className={clsx(view === 'kanban' && !showForm ? 'flex h-full flex-col gap-4' : 'space-y-6')}>
+    <div
+      className={clsx(
+        view === 'kanban' && !showForm
+          ? 'flex h-full flex-col gap-4'
+          : 'space-y-6',
+        showForm && 'mx-auto w-full max-w-6xl',
+      )}
+    >
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between">
         <div>

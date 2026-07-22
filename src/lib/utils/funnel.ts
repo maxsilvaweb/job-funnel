@@ -38,8 +38,9 @@ export function getStageIndex(status: ApplicationStatus): number {
 
 /**
  * Build the funnel data array from a list of applications.
- * Each stage count includes all applications that reached
- * AT LEAST that stage.
+ * Each progression stage count includes all applications that reached
+ * AT LEAST that stage. Rejected and Ghosted are appended as outcomes
+ * (absolute counts, % of total applications).
  */
 export function buildFunnelData(applications: Application[]): FunnelStage[] {
   if (applications.length === 0) return [];
@@ -59,21 +60,47 @@ export function buildFunnelData(applications: Application[]): FunnelStage[] {
     });
   });
 
-  const total = stageCounts['applied'] || 1;
+  const total = applications.length || 1;
+  // Always anchor "% of top" to the first funnel stage so values stay ≤ 100
+  const topOfFunnel = Math.max(stageCounts[FUNNEL_STAGES[0]] || 0, 1);
 
-  return FUNNEL_STAGES.map((stage, idx) => ({
+  const clampPct = (value: number) =>
+    Math.max(0, Math.min(100, Math.round(value)));
+
+  const progression: FunnelStage[] = FUNNEL_STAGES.map((stage, idx) => ({
     name: STAGE_LABELS[stage],
     count: stageCounts[stage],
     conversionFromPrevious:
       idx === 0
         ? 100
-        : Math.round(
+        : clampPct(
             (stageCounts[stage] / (stageCounts[FUNNEL_STAGES[idx - 1]] || 1)) *
               100,
           ),
-    conversionFromTop: Math.round((stageCounts[stage] / total) * 100),
+    conversionFromTop: clampPct((stageCounts[stage] / topOfFunnel) * 100),
     colour: STAGE_COLOURS[stage],
+    kind: 'progression',
   }));
+
+  const rejectedCount = applications.filter((a) => a.status === 'rejected').length;
+  const ghostedCount = applications.filter((a) => a.status === 'ghosted').length;
+
+  const outcomes: FunnelStage[] = (
+    [
+      ['rejected', rejectedCount],
+      ['ghosted', ghostedCount],
+    ] as const
+  ).map(([status, count]) => ({
+    name: STAGE_LABELS[status],
+    count,
+    // For outcomes, share of all applications (capped at 100%)
+    conversionFromPrevious: clampPct((count / total) * 100),
+    conversionFromTop: clampPct((count / total) * 100),
+    colour: STAGE_COLOURS[status],
+    kind: 'outcome' as const,
+  }));
+
+  return [...progression, ...outcomes];
 }
 
 /**
@@ -133,7 +160,7 @@ export function applicationsNeededForOffers(
   targetOffers: number,
 ): number {
   const funnel = buildFunnelData(applications);
-  const offerStage = funnel.find((s) => s.name === 'Offer');
+  const offerStage = funnel.find((s) => s.name === 'Offer' && s.kind !== 'outcome');
 
   if (!offerStage || offerStage.conversionFromTop === 0) {
     // No data yet — use industry average of 2%

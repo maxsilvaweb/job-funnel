@@ -30,7 +30,7 @@ export const STAGE_LABELS: Record<ApplicationStatus, string> = {
   applied: 'Applied',
   responded: 'Responded',
   screening: 'Screening',
-  tech_interview: 'Technical Interview',
+  tech_interview: 'Technical',
   final_round: 'Final Round',
   offer: 'Offer',
   accepted: 'Accepted',

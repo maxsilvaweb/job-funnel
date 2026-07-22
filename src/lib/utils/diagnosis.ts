@@ -57,7 +57,7 @@ export function diagnoseFunnel(funnelData: FunnelStage[]): Diagnosis[] {
   }
 
   // 3. Technical interview pass rate
-  const tech = stageMap.get('Technical Interview');
+  const tech = stageMap.get('Technical');
   if (tech && tech.count > 0) {
     const rate = tech.conversionFromPrevious;
     const bench = HEALTHY_RATES.screening_to_tech;
