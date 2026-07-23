@@ -2,13 +2,11 @@
 
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { KanbanBoard } from '@/components/applications/kanban-board';
-import { ApplicationForm } from '@/components/applications/application-form';
 import { ApplicationTable } from '@/components/applications/application-table';
-import { Card } from '@/components/ui/card';
-import { Plus, Kanban, Table2, X } from 'lucide-react';
+import { Plus, Kanban, Table2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ApplicationsViewProps {
@@ -16,102 +14,70 @@ interface ApplicationsViewProps {
 }
 
 export function ApplicationsView({ view }: ApplicationsViewProps) {
-  const [showForm, setShowForm] = useState(false);
+  const router = useRouter();
 
   return (
     <div
       className={clsx(
-        view === 'kanban' && !showForm
+        view === 'kanban'
           ? 'flex h-full flex-col gap-4'
           : 'space-y-6',
-        showForm && 'mx-auto w-full max-w-6xl',
       )}
     >
-      {/* Header */}
       <div className="flex shrink-0 items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">
-            {showForm ? 'New Application' : 'Applications'}
-          </h1>
+          <h1 className="text-2xl font-bold text-zinc-900">Applications</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            {showForm
-              ? 'Enter company, role, and stage details — then save'
-              : 'Track every application through the funnel'}
+            Track every application through the funnel
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* View toggle — only when browsing, not while adding */}
-          {!showForm && (
-            <div className="flex rounded-lg border border-zinc-200">
-              <Link
-                href="/applications"
-                className={clsx(
-                  'flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 text-sm transition-colors',
-                  view === 'table'
-                    ? 'bg-emerald-50 text-emerald-700 font-medium'
-                    : 'text-zinc-500 hover:text-zinc-700',
-                )}
-              >
-                <Table2 className="h-4 w-4" />
-                Table
-              </Link>
-              <Link
-                href="/kanban"
-                className={clsx(
-                  'flex items-center gap-1.5 rounded-r-lg px-3 py-1.5 text-sm transition-colors',
-                  view === 'kanban'
-                    ? 'bg-emerald-50 text-emerald-700 font-medium'
-                    : 'text-zinc-500 hover:text-zinc-700',
-                )}
-              >
-                <Kanban className="h-4 w-4" />
-                Kanban
-              </Link>
-            </div>
-          )}
+          <div className="flex rounded-lg border border-zinc-200">
+            <Link
+              href="/applications"
+              className={clsx(
+                'flex items-center gap-1.5 rounded-l-lg px-3 py-1.5 text-sm transition-colors',
+                view === 'table'
+                  ? 'bg-emerald-50 text-emerald-700 font-medium'
+                  : 'text-zinc-500 hover:text-zinc-700',
+              )}
+            >
+              <Table2 className="h-4 w-4" />
+              Table
+            </Link>
+            <Link
+              href="/kanban"
+              className={clsx(
+                'flex items-center gap-1.5 rounded-r-lg px-3 py-1.5 text-sm transition-colors',
+                view === 'kanban'
+                  ? 'bg-emerald-50 text-emerald-700 font-medium'
+                  : 'text-zinc-500 hover:text-zinc-700',
+              )}
+            >
+              <Kanban className="h-4 w-4" />
+              Kanban
+            </Link>
+          </div>
 
-          {/* Add / Cancel */}
           <button
-            onClick={() => setShowForm(!showForm)}
-            className={clsx(
-              'flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition-colors',
-              showForm
-                ? 'border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700',
-            )}
+            type="button"
+            onClick={() => router.push('/applications/new')}
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
           >
-            {showForm ? (
-              <>
-                <X className="h-4 w-4" />
-                Cancel
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" />
-                Add Application
-              </>
-            )}
+            <Plus className="h-4 w-4" />
+            Add Application
           </button>
         </div>
       </div>
 
-      {/* Inline form */}
-      {showForm && (
-        <Card>
-          <ApplicationForm onSuccess={() => setShowForm(false)} />
-        </Card>
+      {view === 'kanban' ? (
+        <div className="min-h-0 flex-1">
+          <KanbanBoard />
+        </div>
+      ) : (
+        <ApplicationTable />
       )}
-
-      {/* View */}
-      {!showForm &&
-        (view === 'kanban' ? (
-          <div className="min-h-0 flex-1">
-            <KanbanBoard />
-          </div>
-        ) : (
-          <ApplicationTable />
-        ))}
     </div>
   );
 }

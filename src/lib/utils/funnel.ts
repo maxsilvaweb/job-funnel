@@ -1,13 +1,28 @@
 // src/lib/utils/funnel.ts
 
-import type { Application, FunnelStage, ApplicationStatus, WeeklyTrendPoint } from '@/types';
+import type {
+  Application,
+  FunnelStage,
+  ApplicationStatus,
+  TrendGranularity,
+  TrendPoint,
+} from '@/types';
 import { FUNNEL_STAGES, STAGE_LABELS, STAGE_COLOURS } from '@/lib/constants';
 import {
+  endOfDay,
+  endOfMonth,
   endOfWeek,
+  endOfYear,
   format,
   parseISO,
+  startOfDay,
+  startOfMonth,
   startOfWeek,
+  startOfYear,
+  subDays,
+  subMonths,
   subWeeks,
+  subYears,
 } from 'date-fns';
 
 /**
@@ -170,38 +185,92 @@ export function applicationsNeededForOffers(
   return Math.ceil(targetOffers / (offerStage.conversionFromTop / 100));
 }
 
-/**
- * Weekly application volume + cumulative total for the last N weeks.
- * Weeks start Monday. Includes empty weeks so the line chart stays continuous.
- */
-export function buildWeeklyApplicationTrend(
-  applications: Application[],
-  weekCount = 12,
-): WeeklyTrendPoint[] {
-  const now = new Date();
-  const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+const TREND_DEFAULTS: Record<TrendGranularity, number> = {
+  day: 30,
+  week: 12,
+  month: 12,
+  year: 5,
+};
 
-  const buckets: WeeklyTrendPoint[] = [];
-  for (let i = weekCount - 1; i >= 0; i--) {
-    const weekStart = subWeeks(currentWeekStart, i);
+function periodBounds(granularity: TrendGranularity, date: Date) {
+  switch (granularity) {
+    case 'day':
+      return { start: startOfDay(date), end: endOfDay(date) };
+    case 'week':
+      return {
+        start: startOfWeek(date, { weekStartsOn: 1 }),
+        end: endOfWeek(date, { weekStartsOn: 1 }),
+      };
+    case 'month':
+      return { start: startOfMonth(date), end: endOfMonth(date) };
+    case 'year':
+      return { start: startOfYear(date), end: endOfYear(date) };
+  }
+}
+
+function shiftPeriod(granularity: TrendGranularity, date: Date, amount: number) {
+  switch (granularity) {
+    case 'day':
+      return subDays(date, amount);
+    case 'week':
+      return subWeeks(date, amount);
+    case 'month':
+      return subMonths(date, amount);
+    case 'year':
+      return subYears(date, amount);
+  }
+}
+
+function formatPeriodLabel(granularity: TrendGranularity, start: Date) {
+  switch (granularity) {
+    case 'day':
+      return format(start, 'd MMM');
+    case 'week':
+      return format(start, 'd MMM');
+    case 'month':
+      return format(start, 'MMM yyyy');
+    case 'year':
+      return format(start, 'yyyy');
+  }
+}
+
+function bucketKey(granularity: TrendGranularity, date: Date) {
+  const { start } = periodBounds(granularity, date);
+  return format(start, 'yyyy-MM-dd');
+}
+
+/**
+ * Application volume + cumulative total for the last N periods.
+ * Includes empty buckets so the line chart stays continuous.
+ */
+export function buildApplicationTrend(
+  applications: Application[],
+  granularity: TrendGranularity = 'week',
+  count = TREND_DEFAULTS[granularity],
+): TrendPoint[] {
+  const now = new Date();
+  const { start: currentStart, end: rangeEnd } = periodBounds(granularity, now);
+
+  const buckets: TrendPoint[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const start = shiftPeriod(granularity, currentStart, i);
     buckets.push({
-      week: format(weekStart, 'd MMM'),
-      weekStart: format(weekStart, 'yyyy-MM-dd'),
+      label: formatPeriodLabel(granularity, start),
+      periodStart: format(start, 'yyyy-MM-dd'),
       applications: 0,
       cumulative: 0,
     });
   }
 
-  const firstWeekStart = parseISO(buckets[0].weekStart);
-  const rangeEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
-  const bucketByKey = new Map(buckets.map((b) => [b.weekStart, b]));
+  const firstStart = parseISO(buckets[0].periodStart);
+  const bucketByKey = new Map(buckets.map((b) => [b.periodStart, b]));
 
   for (const app of applications) {
     if (!app.date_applied) continue;
     const appliedAt = parseISO(app.date_applied);
-    if (appliedAt < firstWeekStart || appliedAt > rangeEnd) continue;
+    if (appliedAt < firstStart || appliedAt > rangeEnd) continue;
 
-    const key = format(startOfWeek(appliedAt, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const key = bucketKey(granularity, appliedAt);
     const bucket = bucketByKey.get(key);
     if (!bucket) continue;
     bucket.applications += 1;
@@ -209,7 +278,7 @@ export function buildWeeklyApplicationTrend(
 
   let running = applications.filter((app) => {
     if (!app.date_applied) return false;
-    return parseISO(app.date_applied) < firstWeekStart;
+    return parseISO(app.date_applied) < firstStart;
   }).length;
 
   for (const bucket of buckets) {
@@ -218,4 +287,12 @@ export function buildWeeklyApplicationTrend(
   }
 
   return buckets;
+}
+
+/** @deprecated Prefer buildApplicationTrend(..., 'week', weekCount) */
+export function buildWeeklyApplicationTrend(
+  applications: Application[],
+  weekCount = 12,
+): TrendPoint[] {
+  return buildApplicationTrend(applications, 'week', weekCount);
 }

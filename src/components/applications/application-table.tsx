@@ -36,7 +36,14 @@ import {
   Search,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState, useEffect, type SVGProps, type ComponentType } from 'react';
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  type SVGProps,
+  type ComponentType,
+} from 'react';
 import { clsx } from 'clsx';
 import type {
   Application,
@@ -51,6 +58,7 @@ import {
   getTotalPages,
   paginateItems,
 } from '@/components/ui/pagination';
+import { ApplicationRowPreview } from '@/components/applications/application-row-preview';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -230,6 +238,81 @@ export function ApplicationTable() {
   const [minScore, setMinScore] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewRect, setPreviewRect] = useState<DOMRect | null>(null);
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
+  const tableRootRef = useRef<HTMLDivElement>(null);
+  const showPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hidePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function clearPreviewTimers() {
+    if (showPreviewTimer.current) {
+      clearTimeout(showPreviewTimer.current);
+      showPreviewTimer.current = null;
+    }
+    if (hidePreviewTimer.current) {
+      clearTimeout(hidePreviewTimer.current);
+      hidePreviewTimer.current = null;
+    }
+  }
+
+  function schedulePreview(appId: string, row: HTMLTableRowElement) {
+    clearPreviewTimers();
+    const root = tableRootRef.current;
+    if (!root) return;
+    const nameEl = row.querySelector(
+      '[data-preview-anchor]',
+    ) as HTMLElement | null;
+    const rowRect = (nameEl ?? row).getBoundingClientRect();
+    const rootRect = root.getBoundingClientRect();
+    showPreviewTimer.current = setTimeout(() => {
+      setPreviewId(appId);
+      setPreviewRect(rowRect);
+      setContainerRect(rootRect);
+    }, 280);
+  }
+
+  function scheduleHidePreview() {
+    clearPreviewTimers();
+    hidePreviewTimer.current = setTimeout(() => {
+      setPreviewId(null);
+      setPreviewRect(null);
+      setContainerRect(null);
+    }, 160);
+  }
+
+  function keepPreviewOpen() {
+    clearPreviewTimers();
+  }
+
+  useEffect(() => () => clearPreviewTimers(), []);
+
+  useEffect(() => {
+    function hideOnScrollOrResize(e: Event) {
+      if (e.type === 'scroll') {
+        const preview = tableRootRef.current?.querySelector(
+          '[data-application-preview]',
+        );
+        if (
+          preview &&
+          e.target instanceof Node &&
+          preview.contains(e.target)
+        ) {
+          return;
+        }
+      }
+      clearPreviewTimers();
+      setPreviewId(null);
+      setPreviewRect(null);
+      setContainerRect(null);
+    }
+    window.addEventListener('scroll', hideOnScrollOrResize, true);
+    window.addEventListener('resize', hideOnScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', hideOnScrollOrResize, true);
+      window.removeEventListener('resize', hideOnScrollOrResize);
+    };
+  }, []);
 
   function handleSort(field: SortField) {
     if (sortField === field) {
@@ -394,6 +477,11 @@ export function ApplicationTable() {
     [sorted, page, pageSize],
   );
 
+  const previewApp = useMemo(
+    () => applications?.find((a) => a.id === previewId),
+    [applications, previewId],
+  );
+
   const filtersActive =
     search.trim() !== '' ||
     statusFilter !== 'all' ||
@@ -539,7 +627,8 @@ export function ApplicationTable() {
         )}
       </div>
 
-      <Card padding={false} className="overflow-hidden">
+      <div ref={tableRootRef} className="relative">
+        <Card padding={false} className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-zinc-200 bg-white">
@@ -666,17 +755,18 @@ export function ApplicationTable() {
                         ? 'cursor-pointer hover:bg-zinc-50'
                         : 'hover:bg-zinc-50/60',
                     )}
+                    onMouseEnter={(e) =>
+                      schedulePreview(app.id, e.currentTarget)
+                    }
+                    onMouseLeave={scheduleHidePreview}
                     onClick={() => {
                       if (!app.job_url) return;
                       window.open(app.job_url, '_blank', 'noopener,noreferrer');
                     }}
-                    title={
-                      app.job_url ? 'Open job posting in a new tab' : undefined
-                    }
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" data-preview-anchor>
                       <Link
-                        href={`/applications/${app.id}`}
+                        href={`/applications/edit/${app.id}`}
                         onClick={(e) => e.stopPropagation()}
                         className="font-medium text-zinc-900 transition-colors hover:text-emerald-700"
                       >
@@ -774,7 +864,7 @@ export function ApplicationTable() {
                     >
                       <div className="flex items-center gap-1.5">
                         <Link
-                          href={`/applications/${app.id}/edit`}
+                          href={`/applications/edit/${app.id}`}
                           className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-emerald-600 hover:bg-emerald-600 hover:text-white"
                           aria-label={`Edit ${app.company}`}
                           title="Edit application"
@@ -825,7 +915,18 @@ export function ApplicationTable() {
             itemLabel="applications"
           />
         </div>
-      </Card>
+        </Card>
+
+        {previewApp && previewRect && containerRect && (
+          <ApplicationRowPreview
+            application={previewApp}
+            anchorRect={previewRect}
+            containerRect={containerRect}
+            onMouseEnter={keepPreviewOpen}
+            onMouseLeave={scheduleHidePreview}
+          />
+        )}
+      </div>
     </div>
   );
 }

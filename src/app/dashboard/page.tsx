@@ -8,15 +8,11 @@ import { ConversionRates } from '@/components/dashboard/conversion-rates';
 import { DiagnosisCard } from '@/components/dashboard/diagnosis-card';
 import { WeeklyTargets } from '@/components/dashboard/weekly-targets';
 import { getApplications } from '@/actions/applications';
-import {
-  buildFunnelData,
-  buildWeeklyApplicationTrend,
-} from '@/lib/utils/funnel';
+import { buildFunnelData } from '@/lib/utils/funnel';
 
 export default async function DashboardPage() {
   const { data: applications } = await getApplications();
   const initialFunnel = buildFunnelData(applications);
-  const weeklyTrend = buildWeeklyApplicationTrend(applications, 12);
 
   return (
     <Shell>
@@ -32,10 +28,10 @@ export default async function DashboardPage() {
         {/* Metrics */}
         <MetricsGrid />
 
-        {/* Funnel + weekly trend */}
+        {/* Funnel + application trend */}
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <FunnelChart data={initialFunnel} />
-          <ApplicationTrendChart data={weeklyTrend} />
+          <ApplicationTrendChart applications={applications} />
         </div>
 
         <ConversionRates />

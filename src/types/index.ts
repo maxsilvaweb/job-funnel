@@ -125,12 +125,19 @@ export interface FunnelStage {
   kind?: 'progression' | 'outcome';
 }
 
-export interface WeeklyTrendPoint {
-  week: string;
-  weekStart: string;
+export type TrendGranularity = 'day' | 'week' | 'month' | 'year';
+
+export interface TrendPoint {
+  /** Display label for the x-axis (e.g. "12 Jan", "Jan 2026"). */
+  label: string;
+  /** ISO date key for the start of the bucket. */
+  periodStart: string;
   applications: number;
   cumulative: number;
 }
+
+/** @deprecated Use TrendPoint */
+export type WeeklyTrendPoint = TrendPoint;
 
 export interface Diagnosis {
   stage: string;

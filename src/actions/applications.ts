@@ -165,6 +165,7 @@ export async function updateApplication(
 
   revalidatePath('/dashboard');
   revalidatePath('/applications');
+  revalidatePath(`/applications/edit/${id}`);
   revalidatePath(`/applications/${id}`);
 
   return { data, error: null };
@@ -206,6 +207,7 @@ export async function updateApplicationStatus(id: string, newStatus: string) {
 
   revalidatePath('/dashboard');
   revalidatePath('/applications');
+  revalidatePath(`/applications/edit/${id}`);
   revalidatePath(`/applications/${id}`);
 
   return { error: null };

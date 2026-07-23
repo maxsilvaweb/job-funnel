@@ -42,7 +42,7 @@ export function ApplicationCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <Link
-            href={`/applications/${application.id}`}
+            href={`/applications/edit/${application.id}`}
             className="block truncate text-sm font-semibold text-zinc-900"
           >
             {application.company}
