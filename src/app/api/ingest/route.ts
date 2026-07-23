@@ -10,6 +10,8 @@ const ingestSchema = z.object({
   role: z.string().min(1).max(200),
   job_url: z.string().url().or(z.literal('')).optional().nullable(),
   location: z.string().nullable().optional(),
+  work_mode: z.enum(['remote', 'hybrid', 'onsite']).optional(),
+  /** @deprecated Prefer work_mode. Kept for n8n payloads. */
   remote: z.boolean().optional().default(false),
   employment_type: z
     .enum(['permanent', 'contract'])
@@ -59,6 +61,8 @@ export async function POST(request: Request) {
   const dayRateMax = payload.day_rate_max ?? null;
   const salaryCurrency = payload.salary_currency ?? 'GBP';
   const employmentType = payload.employment_type ?? 'permanent';
+  const workMode =
+    payload.work_mode ?? (payload.remote ? 'remote' : 'onsite');
 
   // Skip duplicates for the same user + job URL
   if (jobUrl) {
@@ -126,7 +130,8 @@ export async function POST(request: Request) {
       employment_type: employmentType,
       date_applied: today,
       location: payload.location?.trim() || null,
-      remote: payload.remote ?? false,
+      work_mode: workMode,
+      remote: workMode === 'remote',
       job_url: jobUrl,
       notes: null,
       priority: payload.ai_score && payload.ai_score >= 90 ? 4 : 3,

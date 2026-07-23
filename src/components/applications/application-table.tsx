@@ -14,6 +14,7 @@ import {
   CLOSED_STAGES,
   SOURCE_LABELS,
   STAGE_LABELS,
+  getApplicationWorkMode,
 } from '@/lib/constants';
 import { formatDate } from '@/lib/utils/dates';
 import { getStageIndex } from '@/lib/utils/funnel';
@@ -283,7 +284,7 @@ export function ApplicationTable() {
         return false;
       }
       if (hideClosed && CLOSED_STAGES.includes(app.status)) return false;
-      if (remoteOnly && !app.remote) return false;
+      if (remoteOnly && getApplicationWorkMode(app) !== 'remote') return false;
       if (
         minScore > 0 &&
         (app.ai_score == null || app.ai_score < minScore)
@@ -331,6 +332,11 @@ export function ApplicationTable() {
           comparison =
             new Date(a.date_applied).getTime() -
             new Date(b.date_applied).getTime();
+          if (comparison === 0) {
+            comparison =
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime();
+          }
           break;
         case 'salary':
           comparison = salarySortValue(a) - salarySortValue(b);

@@ -5,7 +5,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge } from '@/components/ui/badge';
-import { STAGE_LABELS, SOURCE_LABELS } from '@/lib/constants';
+import { STAGE_LABELS, SOURCE_LABELS, WORK_MODE_LABELS, getApplicationWorkMode } from '@/lib/constants';
 import { timeAgo } from '@/lib/utils/dates';
 import { clsx } from 'clsx';
 import { ExternalLink, GripVertical, MapPin, Star } from 'lucide-react';
@@ -70,16 +70,24 @@ export function ApplicationCard({
         </span>
       </div>
 
-      {/* Location */}
-      {application.location && (
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-zinc-400">
-          <MapPin className="h-3 w-3" />
-          <span>
-            {application.location}
-            {application.remote && ' · Remote'}
-          </span>
-        </div>
-      )}
+      {/* Location / work mode */}
+      {(() => {
+        const workMode = getApplicationWorkMode(application);
+        if (!application.location && workMode === 'onsite') return null;
+        return (
+          <div className="mt-1.5 flex items-center gap-1 text-[10px] text-zinc-400">
+            <MapPin className="h-3 w-3" />
+            <span>
+              {[
+                application.location,
+                workMode !== 'onsite' ? WORK_MODE_LABELS[workMode] : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Salary / Day Rate */}
       {application.employment_type === 'contract'

@@ -1,6 +1,11 @@
 // src/lib/constants.ts
 
-import type { ApplicationStatus, ApplicationSource } from '@/types';
+import type {
+  Application,
+  ApplicationStatus,
+  ApplicationSource,
+  WorkMode,
+} from '@/types';
 
 export const FUNNEL_STAGES: ApplicationStatus[] = [
   'discovered',
@@ -67,6 +72,26 @@ export const SOURCE_LABELS: Record<ApplicationSource, string> = {
   cold_outreach: 'Cold Outreach',
   other: 'Other',
 };
+
+export const WORK_MODE_LABELS: Record<WorkMode, string> = {
+  remote: 'Remote',
+  hybrid: 'Hybrid',
+  onsite: 'On-site',
+};
+
+/** Resolve work mode with a fallback for rows that only have the legacy remote flag. */
+export function getApplicationWorkMode(
+  app: Pick<Application, 'remote'> & { work_mode?: WorkMode | null },
+): WorkMode {
+  if (
+    app.work_mode === 'remote' ||
+    app.work_mode === 'hybrid' ||
+    app.work_mode === 'onsite'
+  ) {
+    return app.work_mode;
+  }
+  return app.remote ? 'remote' : 'onsite';
+}
 
 export const HEALTHY_RATES = {
   applied_to_responded: {

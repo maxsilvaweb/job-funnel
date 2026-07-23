@@ -15,7 +15,7 @@ import {
 import { useApplications, useUpdateStatus } from '@/lib/hooks/use-applications';
 import { KanbanColumn } from './kanban-column';
 import { ApplicationCard } from './application-card';
-import { CLOSED_STAGES, STAGE_LABELS } from '@/lib/constants';
+import { CLOSED_STAGES, STAGE_LABELS, getApplicationWorkMode } from '@/lib/constants';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Select } from '@/components/ui/select';
@@ -102,7 +102,7 @@ export function KanbanBoard() {
 
   const filteredApplications = useMemo(() => {
     return (applications || []).filter((app) => {
-      if (remoteOnly && !app.remote) return false;
+      if (remoteOnly && getApplicationWorkMode(app) !== 'remote') return false;
       if (
         minScore > 0 &&
         (app.ai_score == null || app.ai_score < minScore)

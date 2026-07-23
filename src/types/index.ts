@@ -56,6 +56,8 @@ export interface Application {
   day_rate_max: number | null;
   ir35_status: IR35Status | null;
   location: string | null;
+  work_mode: WorkMode;
+  /** Derived from work_mode === 'remote'; kept for legacy filters/imports. */
   remote: boolean;
   job_url: string | null;
   contact_name: string | null;

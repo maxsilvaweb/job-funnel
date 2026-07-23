@@ -17,7 +17,8 @@ export function useApplications() {
       const { data, error } = await supabase
         .from('applications')
         .select('*, stages(*)')
-        .order('date_applied', { ascending: false });
+        .order('date_applied', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data || [];

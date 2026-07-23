@@ -5,7 +5,7 @@ import { Shell } from '@/components/layout/shell';
 import { ApplicationForm } from '@/components/applications/application-form';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { STAGE_LABELS } from '@/lib/constants';
+import { STAGE_LABELS, WORK_MODE_LABELS, getApplicationWorkMode } from '@/lib/constants';
 import type { ApplicationStatus } from '@/types';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -61,9 +61,13 @@ export default async function ApplicationDetailPage({ params }: Props) {
               )}
             </div>
             <p className="mt-1 text-sm text-zinc-500">
-              {application.role}
-              {application.location && ` · ${application.location}`}
-              {application.remote && ' · Remote'}
+              {[
+                application.role,
+                application.location,
+                WORK_MODE_LABELS[getApplicationWorkMode(application)],
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           </div>
         </div>

@@ -25,7 +25,8 @@ export async function getApplications() {
     .from('applications')
     .select('*, stages(*)')
     .eq('user_id', user.id)
-    .order('date_applied', { ascending: false });
+    .order('date_applied', { ascending: false })
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('getApplications error:', error);
@@ -102,6 +103,7 @@ export async function createApplication(formData: ApplicationFormData) {
     .insert({
       ...validated,
       user_id: user.id,
+      remote: validated.work_mode === 'remote',
       job_url: validated.job_url || null,
       contact_email: validated.contact_email || null,
     })
@@ -147,7 +149,10 @@ export async function updateApplication(
 
   const { data, error } = await supabase
     .from('applications')
-    .update(validated)
+    .update({
+      ...validated,
+      remote: validated.work_mode === 'remote',
+    })
     .eq('id', id)
     .eq('user_id', user.id)
     .select()

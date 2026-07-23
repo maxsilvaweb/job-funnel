@@ -46,7 +46,7 @@ export const applicationSchema = z.object({
     .nullable()
     .optional(),
   location: z.string().nullable().optional(),
-  remote: z.boolean().default(false),
+  work_mode: z.enum(['remote', 'hybrid', 'onsite']).default('onsite'),
   job_url: z.string().url().nullable().optional().or(z.literal('')),
   contact_name: z.string().nullable().optional(),
   contact_email: z.string().email().nullable().optional().or(z.literal('')),

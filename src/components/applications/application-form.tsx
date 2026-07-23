@@ -4,7 +4,7 @@
 
 import { useForm } from '@tanstack/react-form';
 import { createApplication, updateApplication } from '@/actions/applications';
-import { SOURCE_LABELS } from '@/lib/constants';
+import { SOURCE_LABELS, WORK_MODE_LABELS, getApplicationWorkMode } from '@/lib/constants';
 import { Slider } from '@/components/ui/slider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import type {
   ApplicationStatus,
   EmploymentType,
   IR35Status,
+  WorkMode,
 } from '@/types';
 
 interface ApplicationFormProps {
@@ -30,7 +31,7 @@ type StickyCreateDefaults = {
   status: ApplicationStatus;
   date_applied: string;
   salary_currency: string;
-  remote: boolean;
+  work_mode: WorkMode;
 };
 
 function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
@@ -49,7 +50,7 @@ function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
     day_rate_max: null as number | null,
     ir35_status: 'undetermined' as IR35Status,
     location: '',
-    remote: sticky?.remote ?? false,
+    work_mode: (sticky?.work_mode ?? 'onsite') as WorkMode,
     job_url: '',
     contact_name: '',
     contact_email: '',
@@ -89,7 +90,9 @@ export function ApplicationForm({
       day_rate_max: application?.day_rate_max ?? null,
       ir35_status: (application?.ir35_status ?? 'undetermined') as IR35Status,
       location: application?.location ?? '',
-      remote: application?.remote ?? false,
+      work_mode: application
+        ? getApplicationWorkMode(application)
+        : ('onsite' as WorkMode),
       job_url: application?.job_url ?? '',
       contact_name: application?.contact_name ?? '',
       contact_email: application?.contact_email ?? '',
@@ -139,7 +142,7 @@ export function ApplicationForm({
             status: value.status,
             date_applied: value.date_applied,
             salary_currency: value.salary_currency,
-            remote: value.remote,
+            work_mode: value.work_mode,
           }),
         );
         setJustCreatedCompany(value.company);
@@ -483,7 +486,7 @@ export function ApplicationForm({
         </form.Field>
       </div>
 
-      {/* Location and Remote */}
+      {/* Location and work mode */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <form.Field name="location">
           {(field) => (
@@ -502,22 +505,25 @@ export function ApplicationForm({
           )}
         </form.Field>
 
-        <form.Field name="remote">
+        <form.Field name="work_mode">
           {(field) => (
-            <div className="flex items-center gap-2 pt-7">
-              <input
-                type="checkbox"
-                id="remote"
-                checked={field.state.value}
-                onChange={(e) => field.handleChange(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <label
-                htmlFor="remote"
-                className="text-sm font-medium text-zinc-700"
-              >
-                Remote
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                Work mode
               </label>
+              <select
+                value={field.state.value}
+                onChange={(e) =>
+                  field.handleChange(e.target.value as WorkMode)
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {(Object.keys(WORK_MODE_LABELS) as WorkMode[]).map((mode) => (
+                  <option key={mode} value={mode}>
+                    {WORK_MODE_LABELS[mode]}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </form.Field>
