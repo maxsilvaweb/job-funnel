@@ -8,7 +8,7 @@ import { SOURCE_LABELS, WORK_MODE_LABELS, getApplicationWorkMode } from '@/lib/c
 import { Slider } from '@/components/ui/slider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { CheckCircle2, LogOut, Save } from 'lucide-react';
+import { CheckCircle2, LogOut, RotateCcw, Save } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
 import type { Application } from '@/types';
 import type {
@@ -166,6 +166,12 @@ export function ApplicationForm({
   function handleDone() {
     setJustSaved(null);
     onSuccess?.();
+  }
+
+  function handleReset() {
+    form.reset(emptyCreateValues());
+    setJustSaved(null);
+    setError(null);
   }
 
   return (
@@ -633,6 +639,17 @@ export function ApplicationForm({
 
       {/* Submit */}
       <div className="flex justify-end gap-2">
+        {!application && (
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={submitting}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:opacity-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reset
+          </button>
+        )}
         {justSaved && (
           <button
             type="button"

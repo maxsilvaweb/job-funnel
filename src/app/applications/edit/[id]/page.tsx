@@ -39,9 +39,9 @@ export default async function EditApplicationPage({ params }: Props) {
         <div className="flex items-start gap-4">
           <Link
             href="/applications"
-            className="rounded-lg border border-zinc-200 p-2 transition-colors hover:bg-zinc-100"
+            className="group rounded-lg border border-zinc-200 p-2 transition-colors hover:border-emerald-700 hover:bg-emerald-700"
           >
-            <ArrowLeft className="h-4 w-4 text-zinc-600" />
+            <ArrowLeft className="h-4 w-4 text-zinc-600 transition-colors group-hover:text-white" />
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
