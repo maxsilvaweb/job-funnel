@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { Shell } from '@/components/layout/shell';
-import { ApplicationForm } from '@/components/applications/application-form';
+import { EditApplicationForm } from './edit-application-form';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -79,7 +79,7 @@ export default async function EditApplicationPage({ params }: Props) {
           <CardHeader>
             <CardTitle>Edit Application</CardTitle>
           </CardHeader>
-          <ApplicationForm application={application} />
+          <EditApplicationForm application={application} />
         </Card>
       </div>
     </Shell>

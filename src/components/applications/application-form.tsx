@@ -21,7 +21,7 @@ import type {
 
 interface ApplicationFormProps {
   application?: Application;
-  /** Called when the user is finished (edit save, or create + Done). */
+  /** Called when the user clicks Done after a successful save. */
   onSuccess?: () => void;
 }
 
@@ -65,9 +65,10 @@ export function ApplicationForm({
 }: ApplicationFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [justCreatedCompany, setJustCreatedCompany] = useState<string | null>(
-    null,
-  );
+  const [justSaved, setJustSaved] = useState<{
+    company: string;
+    mode: 'create' | 'edit';
+  } | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -130,7 +131,7 @@ export function ApplicationForm({
         });
 
         if (application) {
-          onSuccess?.();
+          setJustSaved({ company: value.company, mode: 'edit' });
           return;
         }
 
@@ -145,7 +146,7 @@ export function ApplicationForm({
             work_mode: value.work_mode,
           }),
         );
-        setJustCreatedCompany(value.company);
+        setJustSaved({ company: value.company, mode: 'create' });
       } catch {
         const message = 'Something went wrong. Please try again.';
         setError(message);
@@ -163,7 +164,7 @@ export function ApplicationForm({
   });
 
   function handleDone() {
-    setJustCreatedCompany(null);
+    setJustSaved(null);
     onSuccess?.();
   }
 
@@ -176,16 +177,24 @@ export function ApplicationForm({
       }}
       className="space-y-6"
     >
-      {justCreatedCompany && !application && (
+      {justSaved && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-zinc-900">
-                {justCreatedCompany} added
+                {justSaved.company}{' '}
+                {justSaved.mode === 'edit' ? 'updated' : 'added'}
               </p>
               <p className="mt-0.5 text-sm text-zinc-700">
-                Form cleared for another entry. Add another or you&apos;re done.
+                {justSaved.mode === 'edit' ? (
+                  <>Continue editing or you&apos;re done.</>
+                ) : (
+                  <>
+                    Form cleared for another entry. Add another or you&apos;re
+                    done.
+                  </>
+                )}
               </p>
             </div>
             <button
@@ -624,7 +633,7 @@ export function ApplicationForm({
 
       {/* Submit */}
       <div className="flex justify-end gap-2">
-        {justCreatedCompany && !application && (
+        {justSaved && (
           <button
             type="button"
             onClick={handleDone}
@@ -644,7 +653,7 @@ export function ApplicationForm({
             ? 'Saving...'
             : application
               ? 'Update Application'
-              : justCreatedCompany
+              : justSaved
                 ? 'Save'
                 : 'Add Application'}
         </button>
