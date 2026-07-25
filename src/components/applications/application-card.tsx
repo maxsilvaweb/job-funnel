@@ -131,7 +131,8 @@ export function ApplicationCard({
               {Array.from({ length: application.priority }).map((_, i) => (
                 <Star
                   key={i}
-                  className="h-2.5 w-2.5 fill-amber-400 text-amber-400"
+                  className="h-2.5 w-2.5 fill-none text-emerald-600"
+                  strokeWidth={2.75}
                 />
               ))}
             </div>

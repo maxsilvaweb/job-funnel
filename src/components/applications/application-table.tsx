@@ -34,6 +34,7 @@ import {
   Snowflake,
   Circle,
   Search,
+  Star,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -851,8 +852,14 @@ export function ApplicationTable() {
                     </td>
                     <td className="px-4 py-3 text-zinc-500 text-xs">
                       {app.priority > 0 ? (
-                        <span className="font-medium text-amber-600">
-                          {'★'.repeat(app.priority)}
+                        <span className="inline-flex items-center gap-0.5 text-emerald-600">
+                          {Array.from({ length: app.priority }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className="h-3.5 w-3.5 fill-none"
+                              strokeWidth={2.75}
+                            />
+                          ))}
                         </span>
                       ) : (
                         <span className="text-zinc-300">—</span>

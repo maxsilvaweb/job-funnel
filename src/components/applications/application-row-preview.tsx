@@ -12,7 +12,7 @@ import {
 import { formatDate } from '@/lib/utils/dates';
 import { StageStatusBadge } from '@/components/applications/stage-status-badge';
 import type { Application } from '@/types';
-import { MapPin, User, Mail, Sparkles } from 'lucide-react';
+import { MapPin, User, Mail, Sparkles, Star } from 'lucide-react';
 
 const PREVIEW_WIDTH = 340;
 
@@ -135,7 +135,7 @@ export function ApplicationRowPreview({
           <StageStatusBadge status={app.status} />
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs [&_dd]:mt-0.5">
           <div>
             <dt className="text-zinc-400">Status</dt>
             <dd className="font-medium text-zinc-700">
@@ -178,8 +178,14 @@ export function ApplicationRowPreview({
           {app.priority > 0 && (
             <div>
               <dt className="text-zinc-400">Priority</dt>
-              <dd className="font-medium text-amber-600">
-                {'★'.repeat(app.priority)}
+              <dd className="inline-flex items-center gap-0.5 text-emerald-600">
+                {Array.from({ length: app.priority }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className="h-3.5 w-3.5 fill-none"
+                    strokeWidth={2.75}
+                  />
+                ))}
               </dd>
             </div>
           )}
