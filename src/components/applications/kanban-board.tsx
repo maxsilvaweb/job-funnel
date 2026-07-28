@@ -51,7 +51,7 @@ export function KanbanBoard() {
   const updateStatus = useUpdateStatus();
   const [activeApp, setActiveApp] = useState<Application | null>(null);
 
-  const [hideClosed, setHideClosed] = useState(true);
+  const [hideClosed, setHideClosed] = useState(false);
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [minScore, setMinScore] = useState(0);
 
