@@ -1,17 +1,21 @@
 // src/types/index.ts
 
-export type ApplicationStatus =
-  | 'discovered'
-  | 'applied'
-  | 'responded'
-  | 'screening'
-  | 'tech_interview'
-  | 'final_round'
-  | 'offer'
-  | 'accepted'
-  | 'rejected'
-  | 'ghosted'
-  | 'withdrawn';
+export const APPLICATION_STATUSES = [
+  'discovered',
+  'applied',
+  'responded',
+  'screening',
+  'tech_interview',
+  'final_round',
+  'offer',
+  'on_hold',
+  'accepted',
+  'rejected',
+  'ghosted',
+  'withdrawn',
+] as const;
+
+export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
 export type ApplicationSource =
   | 'linkedin'
@@ -108,6 +112,7 @@ export interface FunnelMetrics {
   tech_interview: number;
   final_round: number;
   offers: number;
+  on_hold: number;
   accepted: number;
   rejected: number;
   ghosted: number;

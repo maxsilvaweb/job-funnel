@@ -4,6 +4,7 @@
 
 import { useMemo } from 'react'
 import { useApplications } from './use-applications'
+import { ACTIVE_APPLICATION_STAGES, CLOSED_STAGES } from '@/lib/constants'
 import {
   calculateResponseRate,
   calculateGhostRate,
@@ -11,7 +12,6 @@ import {
   applicationsNeededForOffers,
 } from '@/lib/utils/funnel'
 import { isThisWeek } from '@/lib/utils/dates'
-import type { ApplicationStatus } from '@/types'
 
 export function useMetrics() {
   const { data: applications } = useApplications()
@@ -23,27 +23,12 @@ export function useMetrics() {
       isThisWeek(a.date_applied)
     )
 
-    const activeStatuses: ApplicationStatus[] = [
-      'applied',
-      'responded',
-      'screening',
-      'tech_interview',
-      'final_round',
-    ]
-
-    const terminalStatuses: ApplicationStatus[] = [
-      'accepted',
-      'rejected',
-      'ghosted',
-      'withdrawn',
-    ]
-
     const activeApplications = apps.filter((a) =>
-      activeStatuses.includes(a.status)
+      ACTIVE_APPLICATION_STAGES.includes(a.status)
     )
 
     const closedApplications = apps.filter((a) =>
-      terminalStatuses.includes(a.status)
+      CLOSED_STAGES.includes(a.status)
     )
 
     return {

@@ -31,18 +31,7 @@ import {
  * "applied", "responded" and "screening".
  */
 export function getStageIndex(status: ApplicationStatus): number {
-  const progressionStages: ApplicationStatus[] = [
-    'discovered',
-    'applied',
-    'responded',
-    'screening',
-    'tech_interview',
-    'final_round',
-    'offer',
-    'accepted',
-  ];
-
-  const idx = progressionStages.indexOf(status);
+  const idx = FUNNEL_STAGES.indexOf(status);
 
   if (status === 'rejected') return 1;
   if (status === 'ghosted') return 0;
@@ -97,8 +86,12 @@ export function buildFunnelData(applications: Application[]): FunnelStage[] {
     kind: 'progression',
   }));
 
-  const rejectedCount = applications.filter((a) => a.status === 'rejected').length;
-  const ghostedCount = applications.filter((a) => a.status === 'ghosted').length;
+  const rejectedCount = applications.filter(
+    (a) => a.status === 'rejected',
+  ).length;
+  const ghostedCount = applications.filter(
+    (a) => a.status === 'ghosted',
+  ).length;
 
   const outcomes: FunnelStage[] = (
     [
@@ -175,7 +168,9 @@ export function applicationsNeededForOffers(
   targetOffers: number,
 ): number {
   const funnel = buildFunnelData(applications);
-  const offerStage = funnel.find((s) => s.name === 'Offer' && s.kind !== 'outcome');
+  const offerStage = funnel.find(
+    (s) => s.name === 'Offer' && s.kind !== 'outcome',
+  );
 
   if (!offerStage || offerStage.conversionFromTop === 0) {
     // No data yet — use industry average of 2%
@@ -208,7 +203,11 @@ function periodBounds(granularity: TrendGranularity, date: Date) {
   }
 }
 
-function shiftPeriod(granularity: TrendGranularity, date: Date, amount: number) {
+function shiftPeriod(
+  granularity: TrendGranularity,
+  date: Date,
+  amount: number,
+) {
   switch (granularity) {
     case 'day':
       return subDays(date, amount);

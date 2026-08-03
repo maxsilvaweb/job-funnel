@@ -1,6 +1,7 @@
 // src/lib/schemas/application.ts
 
 import { z } from 'zod';
+import { APPLICATION_STATUSES } from '@/types';
 
 export const applicationSchema = z.object({
   company: z.string().min(1, 'Company name is required').max(200),
@@ -18,21 +19,7 @@ export const applicationSchema = z.object({
     'cold_outreach',
     'other',
   ]),
-  status: z
-    .enum([
-      'discovered',
-      'applied',
-      'responded',
-      'screening',
-      'tech_interview',
-      'final_round',
-      'offer',
-      'accepted',
-      'rejected',
-      'ghosted',
-      'withdrawn',
-    ])
-    .default('applied'),
+  status: z.enum(APPLICATION_STATUSES).default('applied'),
   date_applied: z.string().min(1, 'Date is required'),
   // Permanent
   salary_min: z.number().nonnegative().nullable().optional(),

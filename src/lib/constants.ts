@@ -6,8 +6,9 @@ import type {
   ApplicationSource,
   WorkMode,
 } from '@/types';
+import { APPLICATION_STATUSES } from '@/types';
 
-export const FUNNEL_STAGES: ApplicationStatus[] = [
+export const FUNNEL_STAGES: readonly ApplicationStatus[] = [
   'discovered',
   'applied',
   'responded',
@@ -15,16 +16,28 @@ export const FUNNEL_STAGES: ApplicationStatus[] = [
   'tech_interview',
   'final_round',
   'offer',
+  'on_hold',
   'accepted',
 ];
 
 /** Stages treated as closed / archive on the Kanban board. */
-export const CLOSED_STAGES: ApplicationStatus[] = [
+export const CLOSED_STAGES: readonly ApplicationStatus[] = [
   'accepted',
   'rejected',
   'ghosted',
   'withdrawn',
 ];
+
+export const ACTIVE_APPLICATION_STAGES: readonly ApplicationStatus[] =
+  FUNNEL_STAGES.filter(
+    (stage) => stage !== 'discovered' && stage !== 'accepted',
+  );
+
+export const KANBAN_STAGES: readonly ApplicationStatus[] =
+  APPLICATION_STATUSES.filter((stage) => stage !== 'withdrawn');
+
+export const ACTIVE_KANBAN_STAGES: readonly ApplicationStatus[] =
+  KANBAN_STAGES.filter((stage) => !CLOSED_STAGES.includes(stage));
 
 // src/lib/constants.ts
 
@@ -38,6 +51,7 @@ export const STAGE_LABELS: Record<ApplicationStatus, string> = {
   tech_interview: 'Technical',
   final_round: 'Final Round',
   offer: 'Offer',
+  on_hold: 'On Hold',
   accepted: 'Accepted',
   rejected: 'Rejected',
   ghosted: 'Ghosted',
@@ -52,6 +66,7 @@ export const STAGE_COLOURS: Record<ApplicationStatus, string> = {
   tech_interview: '#d946ef',
   final_round: '#ec4899',
   offer: '#14b8a6',
+  on_hold: '#f59e0b',
   accepted: '#10b981',
   rejected: '#ef4444',
   ghosted: '#6b7280',

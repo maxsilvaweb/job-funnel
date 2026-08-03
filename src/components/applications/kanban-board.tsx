@@ -15,29 +15,17 @@ import {
 import { useApplications, useUpdateStatus } from '@/lib/hooks/use-applications';
 import { KanbanColumn } from './kanban-column';
 import { ApplicationCard } from './application-card';
-import { CLOSED_STAGES, STAGE_LABELS, getApplicationWorkMode } from '@/lib/constants';
+import {
+  ACTIVE_KANBAN_STAGES,
+  KANBAN_STAGES,
+  STAGE_LABELS,
+  getApplicationWorkMode,
+} from '@/lib/constants';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Select } from '@/components/ui/select';
 import { clsx } from 'clsx';
 import type { Application, ApplicationStatus } from '@/types';
-
-const KANBAN_STAGES: ApplicationStatus[] = [
-  'discovered',
-  'applied',
-  'responded',
-  'screening',
-  'tech_interview',
-  'final_round',
-  'offer',
-  'accepted',
-  'rejected',
-  'ghosted',
-];
-
-const ACTIVE_STAGES = KANBAN_STAGES.filter(
-  (stage) => !CLOSED_STAGES.includes(stage),
-);
 
 const MIN_SCORE_OPTIONS = [
   { value: 0, label: 'Any score' },
@@ -103,17 +91,14 @@ export function KanbanBoard() {
   const filteredApplications = useMemo(() => {
     return (applications || []).filter((app) => {
       if (remoteOnly && getApplicationWorkMode(app) !== 'remote') return false;
-      if (
-        minScore > 0 &&
-        (app.ai_score == null || app.ai_score < minScore)
-      ) {
+      if (minScore > 0 && (app.ai_score == null || app.ai_score < minScore)) {
         return false;
       }
       return true;
     });
   }, [applications, remoteOnly, minScore]);
 
-  const visibleStages = hideClosed ? ACTIVE_STAGES : KANBAN_STAGES;
+  const visibleStages = hideClosed ? ACTIVE_KANBAN_STAGES : KANBAN_STAGES;
 
   const columns = visibleStages.map((stage) => ({
     id: stage,

@@ -11,6 +11,13 @@ import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
+  APPLICATION_STATUSES,
+  type Application,
+  type ApplicationSource,
+  type ApplicationStatus,
+  type EmploymentType,
+} from '@/types';
+import {
   CLOSED_STAGES,
   SOURCE_LABELS,
   STAGE_LABELS,
@@ -46,12 +53,6 @@ import {
   type ComponentType,
 } from 'react';
 import { clsx } from 'clsx';
-import type {
-  Application,
-  ApplicationSource,
-  ApplicationStatus,
-  EmploymentType,
-} from '@/types';
 import { useToast } from '@/lib/hooks/use-toast';
 import {
   DEFAULT_PAGE_SIZE,
@@ -96,20 +97,6 @@ const SOURCE_ICON_COLOURS: Partial<Record<ApplicationSource, string>> = {
   linkedin: '#0A66C2',
   indeed: '#2164F3',
 };
-
-const STATUS_OPTIONS: ApplicationStatus[] = [
-  'discovered',
-  'applied',
-  'responded',
-  'screening',
-  'tech_interview',
-  'final_round',
-  'offer',
-  'accepted',
-  'rejected',
-  'ghosted',
-  'withdrawn',
-];
 
 const SOURCE_OPTIONS = Object.keys(SOURCE_LABELS) as ApplicationSource[];
 
@@ -294,11 +281,7 @@ export function ApplicationTable() {
         const preview = tableRootRef.current?.querySelector(
           '[data-application-preview]',
         );
-        if (
-          preview &&
-          e.target instanceof Node &&
-          preview.contains(e.target)
-        ) {
+        if (preview && e.target instanceof Node && preview.contains(e.target)) {
           return;
         }
       }
@@ -369,10 +352,7 @@ export function ApplicationTable() {
       }
       if (hideClosed && CLOSED_STAGES.includes(app.status)) return false;
       if (remoteOnly && getApplicationWorkMode(app) !== 'remote') return false;
-      if (
-        minScore > 0 &&
-        (app.ai_score == null || app.ai_score < minScore)
-      ) {
+      if (minScore > 0 && (app.ai_score == null || app.ai_score < minScore)) {
         return false;
       }
       if (query) {
@@ -434,8 +414,10 @@ export function ApplicationTable() {
           comparison = a.employment_type.localeCompare(b.employment_type);
           break;
         case 'ir35_status': {
-          const aIr35 = a.employment_type === 'contract' ? a.ir35_status ?? '' : '';
-          const bIr35 = b.employment_type === 'contract' ? b.ir35_status ?? '' : '';
+          const aIr35 =
+            a.employment_type === 'contract' ? (a.ir35_status ?? '') : '';
+          const bIr35 =
+            b.employment_type === 'contract' ? (b.ir35_status ?? '') : '';
           comparison = String(aIr35).localeCompare(String(bIr35));
           break;
         }
@@ -550,7 +532,7 @@ export function ApplicationTable() {
           aria-label="Filter by status"
         >
           <option value="all">All statuses</option>
-          {STATUS_OPTIONS.map((status) => (
+          {APPLICATION_STATUSES.map((status) => (
             <option key={status} value={status}>
               {STAGE_LABELS[status]}
             </option>
@@ -630,298 +612,305 @@ export function ApplicationTable() {
 
       <div ref={tableRootRef} className="relative">
         <Card padding={false} className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-200 bg-white">
-              <tr>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="company"
-                    active={sortField === 'company'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Company
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="role"
-                    active={sortField === 'role'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Role
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="status"
-                    active={sortField === 'status'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Status
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="source"
-                    active={sortField === 'source'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Source
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="date_applied"
-                    active={sortField === 'date_applied'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Applied
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="salary"
-                    active={sortField === 'salary'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Salary
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="employment_type"
-                    active={sortField === 'employment_type'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Type
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="ir35_status"
-                    active={sortField === 'ir35_status'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    IR35
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3 font-medium">
-                  <SortButton
-                    field="priority"
-                    active={sortField === 'priority'}
-                    direction={sortDirection}
-                    onSort={handleSort}
-                  >
-                    Priority
-                  </SortButton>
-                </th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {sorted.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-200 bg-white">
                 <tr>
-                  <td
-                    colSpan={10}
-                    className="px-4 py-12 text-center text-sm text-zinc-500"
-                  >
-                    No applications match these filters.
-                    {filtersActive && (
-                      <button
-                        type="button"
-                        onClick={resetFilters}
-                        className="ml-2 font-medium text-emerald-700 hover:text-emerald-800"
-                      >
-                        Reset filters
-                      </button>
-                    )}
-                  </td>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="company"
+                      active={sortField === 'company'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Company
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="role"
+                      active={sortField === 'role'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Role
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="status"
+                      active={sortField === 'status'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Status
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="source"
+                      active={sortField === 'source'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Source
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="date_applied"
+                      active={sortField === 'date_applied'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Applied
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="salary"
+                      active={sortField === 'salary'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Salary
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="employment_type"
+                      active={sortField === 'employment_type'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Type
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="ir35_status"
+                      active={sortField === 'ir35_status'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      IR35
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3 font-medium">
+                    <SortButton
+                      field="priority"
+                      active={sortField === 'priority'}
+                      direction={sortDirection}
+                      onSort={handleSort}
+                    >
+                      Priority
+                    </SortButton>
+                  </th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ) : (
-                paged.map((app) => (
-                  <tr
-                    key={app.id}
-                    className={clsx(
-                      'table-row-hover transition-colors',
-                      app.job_url
-                        ? 'cursor-pointer hover:bg-zinc-50'
-                        : 'hover:bg-zinc-50/60',
-                    )}
-                    onMouseEnter={(e) =>
-                      schedulePreview(app.id, e.currentTarget)
-                    }
-                    onMouseLeave={scheduleHidePreview}
-                    onClick={() => {
-                      if (!app.job_url) return;
-                      window.open(app.job_url, '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    <td className="px-4 py-3" data-preview-anchor>
-                      <Link
-                        href={`/applications/edit/${app.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium text-zinc-900 transition-colors hover:text-emerald-700"
-                      >
-                        {app.company}
-                      </Link>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {sorted.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="px-4 py-12 text-center text-sm text-zinc-500"
+                    >
+                      No applications match these filters.
+                      {filtersActive && (
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="ml-2 font-medium text-emerald-700 hover:text-emerald-800"
+                        >
+                          Reset filters
+                        </button>
+                      )}
                     </td>
-                    <td className="px-4 py-3 text-zinc-500 max-w-[200px] truncate">
-                      {app.role}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StageStatusBadge status={app.status} />
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">
-                      {(() => {
-                        const SourceIcon = SOURCE_ICONS[app.source];
-                        const iconColour = SOURCE_ICON_COLOURS[app.source];
-                        return (
-                          <span className="inline-flex items-center gap-1.5">
-                            <SourceIcon
-                              className="h-3.5 w-3.5 text-zinc-400"
-                              style={
-                                iconColour ? { color: iconColour } : undefined
-                              }
-                            />
-                            {SOURCE_LABELS[app.source]}
-                          </span>
+                  </tr>
+                ) : (
+                  paged.map((app) => (
+                    <tr
+                      key={app.id}
+                      className={clsx(
+                        'table-row-hover transition-colors',
+                        app.job_url
+                          ? 'cursor-pointer hover:bg-zinc-50'
+                          : 'hover:bg-zinc-50/60',
+                      )}
+                      onMouseEnter={(e) =>
+                        schedulePreview(app.id, e.currentTarget)
+                      }
+                      onMouseLeave={scheduleHidePreview}
+                      onClick={() => {
+                        if (!app.job_url) return;
+                        window.open(
+                          app.job_url,
+                          '_blank',
+                          'noopener,noreferrer',
                         );
-                      })()}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">
-                      {formatDate(app.date_applied)}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {app.employment_type === 'contract' ? (
-                        app.day_rate_min != null || app.day_rate_max != null ? (
+                      }}
+                    >
+                      <td className="px-4 py-3" data-preview-anchor>
+                        <Link
+                          href={`/applications/edit/${app.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-zinc-900 transition-colors hover:text-emerald-700"
+                        >
+                          {app.company}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 max-w-[200px] truncate">
+                        {app.role}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StageStatusBadge status={app.status} />
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 text-xs">
+                        {(() => {
+                          const SourceIcon = SOURCE_ICONS[app.source];
+                          const iconColour = SOURCE_ICON_COLOURS[app.source];
+                          return (
+                            <span className="inline-flex items-center gap-1.5">
+                              <SourceIcon
+                                className="h-3.5 w-3.5 text-zinc-400"
+                                style={
+                                  iconColour ? { color: iconColour } : undefined
+                                }
+                              />
+                              {SOURCE_LABELS[app.source]}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 text-xs">
+                        {formatDate(app.date_applied)}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {app.employment_type === 'contract' ? (
+                          app.day_rate_min != null ||
+                          app.day_rate_max != null ? (
+                            <span className="text-emerald-600 font-medium">
+                              {formatMoney(
+                                app.salary_currency,
+                                app.day_rate_min,
+                                app.day_rate_max,
+                              )}
+                              /day
+                            </span>
+                          ) : (
+                            <span className="text-zinc-400">—</span>
+                          )
+                        ) : app.salary_min != null || app.salary_max != null ? (
                           <span className="text-emerald-600 font-medium">
                             {formatMoney(
                               app.salary_currency,
-                              app.day_rate_min,
-                              app.day_rate_max,
+                              app.salary_min,
+                              app.salary_max,
                             )}
-                            /day
                           </span>
                         ) : (
                           <span className="text-zinc-400">—</span>
-                        )
-                      ) : app.salary_min != null || app.salary_max != null ? (
-                        <span className="text-emerald-600 font-medium">
-                          {formatMoney(
-                            app.salary_currency,
-                            app.salary_min,
-                            app.salary_max,
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {app.employment_type === 'contract' ? (
-                        <span className="inline-flex items-center rounded-full bg-sky-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                          Contract
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-medium text-white">
-                          Permanent
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {app.employment_type === 'contract' ? (
-                        app.ir35_status === 'inside' ? (
-                          <span className="text-zinc-500">Inside IR35</span>
-                        ) : app.ir35_status === 'outside' ? (
-                          <span className="text-zinc-500">Outside IR35</span>
-                        ) : (
-                          <span className="text-zinc-400">Undetermined</span>
-                        )
-                      ) : (
-                        <span className="text-zinc-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-500 text-xs">
-                      {app.priority > 0 ? (
-                        <span className="inline-flex items-center gap-0.5 text-emerald-600">
-                          {Array.from({ length: app.priority }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className="h-3.5 w-3.5 fill-none"
-                              strokeWidth={2.75}
-                            />
-                          ))}
-                        </span>
-                      ) : (
-                        <span className="text-zinc-300">—</span>
-                      )}
-                    </td>
-                    <td
-                      className="px-4 py-3"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Link
-                          href={`/applications/edit/${app.id}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-emerald-600 hover:bg-emerald-600 hover:text-white"
-                          aria-label={`Edit ${app.company}`}
-                          title="Edit application"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Link>
-                        {app.job_url && (
-                          <a
-                            href={app.job_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-emerald-600 hover:bg-emerald-600 hover:text-white"
-                            aria-label={`Open ${app.company} job posting`}
-                            title="Open job posting"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(app.id, app.company)}
-                          disabled={deletingId === app.id}
-                          className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50"
-                          aria-label={`Delete ${app.company}`}
-                          title="Delete application"
-                        >
-                          {deletingId === app.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {app.employment_type === 'contract' ? (
+                          <span className="inline-flex items-center rounded-full bg-sky-600 px-2.5 py-0.5 text-xs font-medium text-white">
+                            Contract
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-emerald-600 px-2.5 py-0.5 text-xs font-medium text-white">
+                            Permanent
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {app.employment_type === 'contract' ? (
+                          app.ir35_status === 'inside' ? (
+                            <span className="text-zinc-500">Inside IR35</span>
+                          ) : app.ir35_status === 'outside' ? (
+                            <span className="text-zinc-500">Outside IR35</span>
                           ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="text-zinc-400">Undetermined</span>
+                          )
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 text-xs">
+                        {app.priority > 0 ? (
+                          <span className="inline-flex items-center gap-0.5 text-emerald-600">
+                            {Array.from({ length: app.priority }).map(
+                              (_, i) => (
+                                <Star
+                                  key={i}
+                                  className="h-3.5 w-3.5 fill-none"
+                                  strokeWidth={2.75}
+                                />
+                              ),
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-300">—</span>
+                        )}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/applications/edit/${app.id}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-emerald-600 hover:bg-emerald-600 hover:text-white"
+                            aria-label={`Edit ${app.company}`}
+                            title="Edit application"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Link>
+                          {app.job_url && (
+                            <a
+                              href={app.job_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-emerald-600 hover:bg-emerald-600 hover:text-white"
+                              aria-label={`Open ${app.company} job posting`}
+                              title="Open job posting"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
                           )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="border-t border-zinc-100 px-4 py-3">
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            totalItems={sorted.length}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            itemLabel="applications"
-          />
-        </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(app.id, app.company)}
+                            disabled={deletingId === app.id}
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-zinc-100 text-zinc-500 transition-colors hover:border-red-600 hover:bg-red-600 hover:text-white disabled:opacity-50"
+                            aria-label={`Delete ${app.company}`}
+                            title="Delete application"
+                          >
+                            {deletingId === app.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-zinc-100 px-4 py-3">
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              totalItems={sorted.length}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              itemLabel="applications"
+            />
+          </div>
         </Card>
 
         {previewApp && previewRect && containerRect && (
