@@ -38,6 +38,7 @@ export const applicationSchema = z.object({
   contact_name: z.string().nullable().optional(),
   contact_email: z.string().email().nullable().optional().or(z.literal('')),
   notes: z.string().nullable().optional(),
+  on_hold_comment: z.string().nullable().optional(),
   priority: z.number().min(0).max(5).default(0),
 }).superRefine((data, ctx) => {
   if (data.employment_type === 'permanent') {

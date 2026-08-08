@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { CheckCircle2, LogOut, RotateCcw, Save } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
+import { OnHoldCommentModal } from './on-hold-comment-modal';
 import type { Application } from '@/types';
 import type {
   ApplicationSource,
@@ -101,10 +102,12 @@ export function ApplicationForm({
       contact_name: application?.contact_name ?? '',
       contact_email: application?.contact_email ?? '',
       notes: application?.notes ?? '',
+      on_hold_comment: application?.on_hold_comment ?? '',
       priority: application?.priority ?? 0,
     },
     onSubmit: async ({ value }) => {
-      if (value.status === 'on_hold' && !pendingFormData) {
+      // Only trigger modal for status change, and not in edit mode
+      if (value.status === 'on_hold' && !application && !pendingFormData) {
         setPendingFormData(value);
         setShowOnHoldModal(true);
         return;
@@ -626,20 +629,28 @@ export function ApplicationForm({
 
       {/* On-Hold Comment */}
       {/* On-Hold Comment */}
-      <form.Field name="on_hold_comment">
-        {(field) => <input type="hidden" value={field.state.value} />}
-      </form.Field>
-
-      {application?.status === 'on_hold' && (
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-            On-Hold Comment
-          </label>
-          <div className="max-h-32 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600">
-            {application.on_hold_comment || 'No comment provided.'}
-          </div>
-        </div>
-      )}
+      <form.Subscribe selector={(state) => state.values.status}>
+        {(status) =>
+          status === 'on_hold' && (
+            <form.Field name="on_hold_comment">
+              {(field) => (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                    On-Hold Comment
+                  </label>
+                  <textarea
+                    value={field.state.value ?? ''}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    rows={3}
+                    placeholder="Enter reason for on-hold..."
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
+            </form.Field>
+          )
+        }
+      </form.Subscribe>
 
       {/* Notes */}
       <form.Field name="notes">
