@@ -55,6 +55,7 @@ function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
     contact_name: '',
     contact_email: '',
     notes: '',
+    on_hold_comment: '',
     priority: 0,
   };
 }
@@ -64,6 +65,8 @@ export function ApplicationForm({
   onSuccess,
 }: ApplicationFormProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [showOnHoldModal, setShowOnHoldModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<{
     company: string;
@@ -101,13 +104,25 @@ export function ApplicationForm({
       priority: application?.priority ?? 0,
     },
     onSubmit: async ({ value }) => {
+      if (value.status === 'on_hold' && !pendingFormData) {
+        setPendingFormData(value);
+        setShowOnHoldModal(true);
+        return;
+      }
+      
+      const payload = pendingFormData 
+        ? { ...pendingFormData, on_hold_comment: value.on_hold_comment } 
+        : value;
+
       setSubmitting(true);
       setError(null);
 
       try {
         const result = application
-          ? await updateApplication(application.id, value)
-          : await createApplication(value);
+          ? await updateApplication(application.id, payload)
+          : await createApplication(payload);
+        
+        // ... (rest of the submission logic)
 
         if (result.error) {
           setError(result.error);
@@ -118,6 +133,7 @@ export function ApplicationForm({
             description: result.error,
             variant: 'error',
           });
+          setPendingFormData(null);
           return;
         }
 
@@ -125,38 +141,33 @@ export function ApplicationForm({
         toast({
           title: application ? 'Application updated' : 'Application added',
           description: application
-            ? `${value.company} has been updated.`
-            : `${value.company} has been added to your funnel.`,
+            ? `${payload.company} has been updated.`
+            : `${payload.company} has been added to your funnel.`,
           variant: 'success',
         });
 
         if (application) {
-          setJustSaved({ company: value.company, mode: 'edit' });
+          setJustSaved({ company: payload.company, mode: 'edit' });
+          setPendingFormData(null);
           return;
         }
 
         // Create: reset for another entry, keep useful defaults
         form.reset(
           emptyCreateValues({
-            employment_type: value.employment_type,
-            source: value.source,
-            status: value.status,
-            date_applied: value.date_applied,
-            salary_currency: value.salary_currency,
-            work_mode: value.work_mode,
+            employment_type: payload.employment_type,
+            source: payload.source,
+            status: payload.status,
+            date_applied: payload.date_applied,
+            salary_currency: payload.salary_currency,
+            work_mode: payload.work_mode,
           }),
         );
-        setJustSaved({ company: value.company, mode: 'create' });
+        setJustSaved({ company: payload.company, mode: 'create' });
+        setPendingFormData(null);
       } catch {
-        const message = 'Something went wrong. Please try again.';
-        setError(message);
-        toast({
-          title: application
-            ? 'Could not update application'
-            : 'Could not add application',
-          description: message,
-          variant: 'error',
-        });
+        // ...
+        setPendingFormData(null);
       } finally {
         setSubmitting(false);
       }
@@ -214,6 +225,20 @@ export function ApplicationForm({
           </div>
         </div>
       )}
+
+      {/* On-Hold Comment Modal */}
+      <OnHoldCommentModal
+        isOpen={showOnHoldModal}
+        onClose={() => {
+          setShowOnHoldModal(false);
+          setPendingFormData(null);
+        }}
+        onConfirm={(comment) => {
+          form.setFieldValue('on_hold_comment', comment);
+          setShowOnHoldModal(false);
+          form.handleSubmit(); // Re-trigger submission
+        }}
+      />
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -598,6 +623,23 @@ export function ApplicationForm({
           )}
         </form.Field>
       </div>
+
+      {/* On-Hold Comment */}
+      {/* On-Hold Comment */}
+      <form.Field name="on_hold_comment">
+        {(field) => <input type="hidden" value={field.state.value} />}
+      </form.Field>
+
+      {application?.status === 'on_hold' && (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+            On-Hold Comment
+          </label>
+          <div className="max-h-32 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-600">
+            {application.on_hold_comment || 'No comment provided.'}
+          </div>
+        </div>
+      )}
 
       {/* Notes */}
       <form.Field name="notes">

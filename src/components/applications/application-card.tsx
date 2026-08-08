@@ -15,11 +15,15 @@ import type { Application } from '@/types';
 interface ApplicationCardProps {
   application: Application;
   isDragOverlay?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export function ApplicationCard({
   application,
   isDragOverlay,
+  onMouseEnter,
+  onMouseLeave,
 }: ApplicationCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: application.id });
@@ -32,8 +36,10 @@ export function ApplicationCard({
     <div
       ref={setNodeRef}
       style={style}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={clsx(
-        'rounded-lg border border-zinc-200 bg-white p-3 shadow-sm',
+        'relative rounded-lg border border-zinc-200 bg-white p-3 shadow-sm',
         isDragging && 'opacity-50',
         isDragOverlay && 'rotate-2 shadow-xl ring-2 ring-teal-400',
       )}

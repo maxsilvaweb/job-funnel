@@ -220,6 +220,21 @@ export function ApplicationRowPreview({
           )}
         </div>
 
+        {app.on_hold_comment?.trim() && app.status === 'on_hold' && (
+          <div className="rounded-lg bg-amber-50 px-3 py-2.5">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-amber-700">
+              On-Hold Comment
+            </p>
+            <div
+              className="max-h-28 overflow-y-auto overscroll-contain whitespace-pre-wrap text-sm leading-relaxed text-amber-700"
+              onWheel={(e) => e.stopPropagation()}
+              onScroll={(e) => e.stopPropagation()}
+            >
+              {app.on_hold_comment.trim()}
+            </div>
+          </div>
+        )}
+
         {app.notes?.trim() ? (
           <div className="rounded-lg bg-emerald-50 px-3 py-2.5">
             <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-emerald-700">

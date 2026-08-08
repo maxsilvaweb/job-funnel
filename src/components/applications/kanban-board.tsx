@@ -13,8 +13,10 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { useApplications, useUpdateStatus } from '@/lib/hooks/use-applications';
+import { OnHoldCommentModal } from './on-hold-comment-modal';
 import { KanbanColumn } from './kanban-column';
 import { ApplicationCard } from './application-card';
+import { ApplicationRowPreview } from './application-row-preview';
 import {
   ACTIVE_KANBAN_STAGES,
   KANBAN_STAGES,
@@ -38,6 +40,14 @@ export function KanbanBoard() {
   const { data: applications, isLoading, isError, error } = useApplications();
   const updateStatus = useUpdateStatus();
   const [activeApp, setActiveApp] = useState<Application | null>(null);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: ApplicationStatus } | null>(null);
+  
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewRect, setPreviewRect] = useState<DOMRect | null>(null);
+  const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
+  const showPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hidePreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoveredAppId, setHoveredAppId] = useState<string | null>(null);
 
   const [hideClosed, setHideClosed] = useState(false);
   const [remoteOnly, setRemoteOnly] = useState(false);
@@ -106,6 +116,43 @@ export function KanbanBoard() {
     applications: filteredApplications.filter((a) => a.status === stage),
   }));
 
+  function clearPreviewTimers() {
+    if (showPreviewTimer.current) {
+      clearTimeout(showPreviewTimer.current);
+      showPreviewTimer.current = null;
+    }
+    if (hidePreviewTimer.current) {
+      clearTimeout(hidePreviewTimer.current);
+      hidePreviewTimer.current = null;
+    }
+  }
+
+  function schedulePreview(appId: string, element: HTMLElement) {
+    clearPreviewTimers();
+    const root = scrollRef.current;
+    if (!root) return;
+    const rect = element.getBoundingClientRect();
+    const rootRect = root.getBoundingClientRect();
+    showPreviewTimer.current = setTimeout(() => {
+      setPreviewId(appId);
+      setPreviewRect(rect);
+      setContainerRect(rootRect);
+    }, 280);
+  }
+
+  function scheduleHidePreview() {
+    clearPreviewTimers();
+    hidePreviewTimer.current = setTimeout(() => {
+      setPreviewId(null);
+      setPreviewRect(null);
+      setContainerRect(null);
+    }, 160);
+  }
+
+  function keepPreviewOpen() {
+    clearPreviewTimers();
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const app = applications?.find((a) => a.id === event.active.id);
     setActiveApp(app || null);
@@ -123,7 +170,22 @@ export function KanbanBoard() {
     const app = applications?.find((a) => a.id === appId);
     if (!app || app.status === newStatus) return;
 
-    updateStatus.mutate({ id: appId, status: newStatus });
+    if (newStatus === 'on_hold') {
+      setPendingStatusUpdate({ id: appId, status: newStatus });
+    } else {
+      updateStatus.mutate({ id: appId, status: newStatus });
+    }
+  }
+
+  function handleOnHoldConfirm(comment: string) {
+    if (pendingStatusUpdate) {
+      updateStatus.mutate({ 
+        id: pendingStatusUpdate.id, 
+        status: pendingStatusUpdate.status,
+        onHoldComment: comment
+      });
+      setPendingStatusUpdate(null);
+    }
   }
 
   function handleDragCancel() {
@@ -281,17 +343,46 @@ export function KanbanBoard() {
                 count={col.applications.length}
               >
                 {col.applications.map((app) => (
-                  <ApplicationCard key={app.id} application={app} />
+                  <ApplicationCard 
+                    key={app.id} 
+                    application={app} 
+                    onMouseEnter={(e) => schedulePreview(app.id, e.currentTarget)}
+                    onMouseLeave={scheduleHidePreview}
+                  />
                 ))}
               </KanbanColumn>
             ))}
           </div>
+
+          {previewId && previewRect && containerRect && (
+            <ApplicationRowPreview
+              application={applications?.find((a) => a.id === previewId)!}
+              anchorRect={previewRect}
+              containerRect={containerRect}
+              onMouseEnter={keepPreviewOpen}
+              onMouseLeave={scheduleHidePreview}
+            />
+          )}
         </div>
       </div>
 
+      <OnHoldCommentModal
+        isOpen={!!pendingStatusUpdate}
+        onClose={() => setPendingStatusUpdate(null)}
+        onConfirm={handleOnHoldConfirm}
+      />
+
       <DragOverlay>
         {activeApp ? (
-          <ApplicationCard application={activeApp} isDragOverlay />
+          <div className="relative">
+            <ApplicationCard application={activeApp} isDragOverlay />
+            {activeApp.status === 'on_hold' && activeApp.on_hold_comment && (
+               <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-600 shadow-lg">
+                  <p className="font-semibold text-zinc-900 mb-1">On Hold</p>
+                  <p>{activeApp.on_hold_comment}</p>
+                </div>
+            )}
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>

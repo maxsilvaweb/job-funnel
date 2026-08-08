@@ -57,13 +57,20 @@ export function useUpdateStatus() {
     mutationFn: async ({
       id,
       status,
+      onHoldComment,
     }: {
       id: string;
       status: ApplicationStatus;
+      onHoldComment?: string;
     }) => {
+      const updateData: any = { status };
+      if (status === 'on_hold' && onHoldComment) {
+        updateData.on_hold_comment = onHoldComment;
+      }
+
       const { error: updateError } = await supabase
         .from('applications')
-        .update({ status })
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) throw updateError;

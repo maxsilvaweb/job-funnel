@@ -67,6 +67,7 @@ export interface Application {
   contact_name: string | null;
   contact_email: string | null;
   notes: string | null;
+  on_hold_comment: string | null;
   priority: number;
   ai_score: number | null;
   ai_reasoning: string | null;

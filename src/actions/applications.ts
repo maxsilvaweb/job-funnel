@@ -171,7 +171,7 @@ export async function updateApplication(
   return { data, error: null };
 }
 
-export async function updateApplicationStatus(id: string, newStatus: string) {
+export async function updateApplicationStatus(id: string, newStatus: string, onHoldComment?: string) {
   const supabase = await createClient();
 
   const {
@@ -181,9 +181,14 @@ export async function updateApplicationStatus(id: string, newStatus: string) {
   if (!user) redirect('/auth/login');
 
   // Update the application status
+  const updateData: any = { status: newStatus };
+  if (newStatus === 'on_hold' && onHoldComment) {
+    updateData.on_hold_comment = onHoldComment;
+  }
+
   const { error: updateError } = await supabase
     .from('applications')
-    .update({ status: newStatus })
+    .update(updateData)
     .eq('id', id)
     .eq('user_id', user.id);
 
