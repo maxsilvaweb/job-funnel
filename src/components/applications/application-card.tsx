@@ -15,7 +15,7 @@ import type { Application } from '@/types';
 interface ApplicationCardProps {
   application: Application;
   isDragOverlay?: boolean;
-  onMouseEnter?: () => void;
+  onMouseEnter?: (event: React.MouseEvent<HTMLDivElement>) => void;
   onMouseLeave?: () => void;
 }
 
