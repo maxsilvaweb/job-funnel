@@ -1,0 +1,184 @@
+{
+  "name": "Normalize Resume Markdown",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-normalize",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-resume-normalize",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-480, 300],
+      "webhookId": "resume-normalize"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// n8n may nest JSON under body depending on version\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst userId = body.user_id || item.user_id;\nconst resumeText = String(body.resume_text || item.resume_text || '').trim();\n\nif (!userId) {\n  throw new Error('Missing user_id');\n}\nif (!resumeText) {\n  throw new Error('Missing resume_text');\n}\n\n// Cap input so the OpenAI call stays small\nconst MAX = 20000;\nconst clipped =\n  resumeText.length <= MAX\n    ? resumeText\n    : resumeText.slice(0, MAX).trimEnd() + '\\n…[truncated]';\n\nreturn [{\n  json: {\n    user_id: userId,\n    resume_text: clipped,\n  },\n}];\n"
+      },
+      "id": "prepare-resume-payload",
+      "name": "Prepare Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  temperature: 0.1,\n  messages: [\n    {\n      role: 'system',\n      content: 'You convert messy CV / resume text into clean, structured Markdown for job-matching AI.\\n\\nRules:\\n- Output ONLY Markdown. No preamble, no code fences, no explanation.\\n- Preserve facts from the source. Do not invent employers, dates, skills, or qualifications.\\n- If a section has no evidence in the source, omit that section.\\n- Prefer concise bullet points.\\n- Put contact details in a Contact section so they are easy to ignore for scoring.\\n- Use this outline when content exists:\\n\\n# Full Name\\n\\n## Contact\\n- Phone:\\n- Email:\\n- Location:\\n- LinkedIn:\\n- Website:\\n\\n## Summary\\n\\n## Experience\\n### Role — Company (Dates)\\n- Achievement / responsibility\\n\\n## Skills\\n\\n## Qualifications\\n\\n## Interests'\n    },\n    {\n      role: 'user',\n      content: 'Convert this CV into structured Markdown:\\n\\n' + String($json.resume_text || '')\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "id": "openai-normalize-resume",
+      "name": "Normalize With GPT-4o-mini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [0, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pl74RvtygShKayYL",
+          "name": "OpenAI Auth"
+        },
+        "openAiApi": {
+          "id": "SskrtKn16fOicEvw",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ai = $input.first().json;\nconst prepared = $('Prepare Payload').first().json;\n\nconst raw =\n  ai.choices?.[0]?.message?.content ||\n  ai.message?.content ||\n  ai.content ||\n  '';\n\nlet text = String(raw).trim();\ntext = text\n  .replace(/^```(?:markdown|md)?\\s*/i, '')\n  .replace(/\\s*```$/i, '')\n  .trim();\n\nif (!text) {\n  throw new Error('OpenAI returned empty markdown');\n}\n\n// Soft cap aligned with app RESUME_TEXT_MAX_CHARS\nconst MAX = 8000;\nif (text.length > MAX) {\n  text = text.slice(0, MAX).trimEnd() + '\\n…[truncated]';\n}\n\nreturn [{\n  json: {\n    user_id: prepared.user_id,\n    resume_text: text,\n    characters: text.length,\n  },\n}];\n"
+      },
+      "id": "parse-normalized-markdown",
+      "name": "Parse Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://job-funnel-seven.vercel.app/api/resume/normalized",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: $json.user_id, resume_text: $json.resume_text }) }}",
+        "options": {}
+      },
+      "id": "update-resume-api",
+      "name": "Save Normalized Resume",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [480, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5fb1NfmXW5uPpt4l",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst parsed = $('Parse Markdown').first().json;\n\nconsole.log('Resume normalize complete');\nconsole.log(`user_id: ${parsed.user_id}`);\nconsole.log(`characters: ${parsed.characters}`);\n\nreturn [{\n  json: {\n    summary: 'Resume normalized to markdown and saved.',\n    user_id: parsed.user_id,\n    characters: parsed.characters,\n    api: result,\n    timestamp: new Date().toISOString(),\n  },\n}];\n"
+      },
+      "id": "normalize-summary",
+      "name": "Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payload": {
+      "main": [
+        [
+          {
+            "node": "Normalize With GPT-4o-mini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize With GPT-4o-mini": {
+      "main": [
+        [
+          {
+            "node": "Parse Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Markdown": {
+      "main": [
+        [
+          {
+            "node": "Save Normalized Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Normalized Resume": {
+      "main": [
+        [
+          {
+            "node": "Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "resume-normalize-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
