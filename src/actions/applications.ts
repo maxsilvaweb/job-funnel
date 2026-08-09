@@ -7,6 +7,7 @@ import { applicationSchema } from '@/lib/schemas/application';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { ApplicationFormData } from '@/lib/schemas/application';
+import type { Application, ApplicationStatus } from '@/types';
 
 // ─────────────────────────────────────────
 // READ
@@ -106,6 +107,11 @@ export async function createApplication(formData: ApplicationFormData) {
       remote: validated.work_mode === 'remote',
       job_url: validated.job_url || null,
       contact_email: validated.contact_email || null,
+      on_hold_at: validated.on_hold_at || null,
+      on_hold_comment: validated.on_hold_comment || null,
+      notes: validated.notes || null,
+      location: validated.location || null,
+      contact_name: validated.contact_name || null,
     })
     .select()
     .single();
@@ -152,6 +158,13 @@ export async function updateApplication(
     .update({
       ...validated,
       remote: validated.work_mode === 'remote',
+      job_url: validated.job_url || null,
+      contact_email: validated.contact_email || null,
+      on_hold_at: validated.on_hold_at || null,
+      on_hold_comment: validated.on_hold_comment || null,
+      notes: validated.notes || null,
+      location: validated.location || null,
+      contact_name: validated.contact_name || null,
     })
     .eq('id', id)
     .eq('user_id', user.id)
@@ -171,7 +184,12 @@ export async function updateApplication(
   return { data, error: null };
 }
 
-export async function updateApplicationStatus(id: string, newStatus: string, onHoldComment?: string) {
+export async function updateApplicationStatus(
+  id: string,
+  newStatus: ApplicationStatus,
+  onHoldComment?: string,
+  onHoldAt?: string,
+) {
   const supabase = await createClient();
 
   const {
@@ -181,9 +199,10 @@ export async function updateApplicationStatus(id: string, newStatus: string, onH
   if (!user) redirect('/auth/login');
 
   // Update the application status
-  const updateData: any = { status: newStatus };
-  if (newStatus === 'on_hold' && onHoldComment) {
-    updateData.on_hold_comment = onHoldComment;
+  const updateData: Partial<Application> = { status: newStatus };
+  if (newStatus === 'on_hold') {
+    updateData.on_hold_comment = onHoldComment || null;
+    updateData.on_hold_at = onHoldAt || null;
   }
 
   const { error: updateError } = await supabase

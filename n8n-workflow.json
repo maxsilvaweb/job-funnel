@@ -1,42 +1,58 @@
 {
-  "name": "Morning Job Hunt",
+  "name": "Morning Job Hunt Linear",
   "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all();\nconst inserted = results.filter((result) => result.json.success).length;\nconst skipped = results.filter((result) => result.json.skipped).length;\n\nconsole.log('Morning Job Hunt Complete');\nconsole.log(`Inserted: ${inserted}`);\nconsole.log(`Skipped: ${skipped}`);\n\nreturn [{\n  json: {\n    summary: `Morning job hunt complete. ${inserted} new jobs discovered, ${skipped} duplicates skipped.`,\n    inserted,\n    skipped,\n    timestamp: new Date().toISOString(),\n  },\n}];\n"
+      },
+      "id": "35d7ecf0-2755-489d-a192-d154d5e541b4",
+      "name": "Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        1552
+      ]
+    },
     {
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "hours",
-              "hoursInterval": 24,
-              "triggerAtHour": 6,
-              "triggerAtMinute": 0
+              "hoursInterval": 24
             }
           ]
         }
       },
-      "id": "schedule-trigger",
+      "id": "9a14fdb3-7a4f-441b-824d-ca40d9c28c90",
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [240, 300]
+      "position": [
+        -816,
+        1552
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://YOUR_APP_URL/api/users",
+        "url": "https://job-funnel-seven.vercel.app/api/users",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "fetch-users",
+      "id": "add2deb4-4776-4454-aaa1-6eb24e20993b",
       "name": "Fetch All Users",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [460, 300],
+      "position": [
+        -592,
+        1552
+      ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "n8n-auth",
-          "name": "Job Funnel Auth"
+          "id": "5fb1NfmXW5uPpt4l",
+          "name": "Header Auth account"
         }
       }
     },
@@ -45,116 +61,204 @@
         "fieldToSplitOut": "users",
         "options": {}
       },
-      "id": "split-users",
+      "id": "5ec53e51-2483-421d-b24e-dc33a45e54cf",
       "name": "Split Users",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [
+        -368,
+        1552
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "https://boards-api.greenhouse.io/v1/boards/vercel/jobs?content=true",
         "options": {}
       },
-      "id": "fetch-greenhouse",
+      "id": "c34a6cc3-1838-4d3c-8e42-7766348c0d85",
       "name": "Fetch Greenhouse Jobs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [900, 200]
+      "position": [
+        -144,
+        1456
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://api.lever.co/v0/postings/supabase?mode=json",
+        "url": "https://remotive.com/api/remote-jobs?category=software-dev&limit=50",
         "options": {}
       },
-      "id": "fetch-lever",
-      "name": "Fetch Lever Jobs",
+      "id": "f4440d5f-9975-4bde-a271-1aff8cdea669",
+      "name": "Fetch Remotive Jobs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [900, 400]
+      "position": [
+        -144,
+        1648
+      ]
     },
     {
       "parameters": {
-        "mode": "append",
-        "options": {}
+        "jsCode": "const user = $('Split Users').item.json;\nconst data = $input.first().json;\n\nreturn [{\n  json: {\n    ...data,\n    _user: user,\n    _source: 'greenhouse',\n  },\n}];\n"
       },
-      "id": "merge-jobs",
+      "id": "8b4670fc-95b3-4c87-bfa9-aa22c560a706",
+      "name": "Tag Greenhouse User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('Split Users').item.json;\nconst data = $input.first().json;\n\nreturn [{\n  json: {\n    ...data,\n    _user: user,\n    _source: 'remotive',\n  },\n}];\n"
+      },
+      "id": "007afec9-c11d-45cd-bace-38dec3d7ff26",
+      "name": "Tag Remotive User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        1648
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "dd8626f7-796a-4053-9b03-8843c27128c2",
       "name": "Merge Job Lists",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
-      "position": [1120, 300]
+      "position": [
+        160,
+        1552
+      ]
     },
     {
       "parameters": {
-        "language": "javaScript",
-        "jsCode": "const jobs = $input.all();\nconst user = $('Split Users').item.json;\nconst keywords = user.target_keywords.map(k => k.toLowerCase());\n\nconst filtered = jobs.filter(item => {\n  const job = item.json;\n  const title = (job.title || '').toLowerCase();\n  const description = (job.content || job.description || '').toLowerCase();\n  const text = title + ' ' + description;\n  return keywords.some(keyword => text.includes(keyword));\n});\n\nif (filtered.length === 0) {\n  return [];\n}\n\nreturn filtered.map(item => ({\n  json: {\n    ...item.json,\n    _user: user\n  }\n}));"
+        "jsCode": "const inputItems = $input.all();\nconst MAX_JOBS_TO_SCORE = 20;\nconst RESUME_MAX_CHARS = 8000;\n\nfunction decodeHtml(html) {\n  return String(html || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction prepareUser(user) {\n  const resume = String(user.resume_text || '');\n  return {\n    ...user,\n    resume_text: resume.length <= RESUME_MAX_CHARS\n      ? resume\n      : resume.slice(0, RESUME_MAX_CHARS).trimEnd() + '\\n\u2026[truncated]',\n  };\n}\n\nfunction extractJobs(itemJson) {\n  if (Array.isArray(itemJson.jobs)) return itemJson.jobs;\n  if (itemJson.title || itemJson.job_title) return [itemJson];\n  return [];\n}\n\nfunction matchesKeywords(job, keywords) {\n  const title = String(job.title || job.job_title || '').toLowerCase();\n  const description = decodeHtml(job.content || job.description || '').toLowerCase();\n  const company = String(job.company_name || job.company || '').toLowerCase();\n  const text = `${title} ${description} ${company}`;\n  if (!keywords.length) return true;\n  return keywords.some((keyword) => text.includes(keyword));\n}\n\n// Group API responses by user so each preference set is applied correctly\nconst byUser = new Map();\nfor (const item of inputItems) {\n  const rawUser = item.json._user;\n  if (!rawUser || !rawUser.user_id) {\n    throw new Error('Missing _user on merged job list item \u2014 Tag User nodes must run before Merge');\n  }\n  const key = String(rawUser.user_id);\n  if (!byUser.has(key)) {\n    byUser.set(key, { user: prepareUser(rawUser), jobs: [] });\n  }\n  byUser.get(key).jobs.push(...extractJobs(item.json));\n}\n\nconst output = [];\nfor (const { user, jobs } of byUser.values()) {\n  const keywords = [\n    ...(user.target_keywords || []),\n    ...(user.target_roles || []),\n  ].map((k) => String(k).toLowerCase().trim()).filter(Boolean);\n\n  const filtered = jobs.filter((job) => matchesKeywords(job, keywords));\n\n  for (const job of filtered.slice(0, MAX_JOBS_TO_SCORE)) {\n    const fullText = decodeHtml(job.content || job.description || '');\n    output.push({\n      json: {\n        ...job,\n        _job_text: fullText.slice(0, 50000),\n        content: fullText.slice(0, 3000),\n        description: decodeHtml(job.description || '').slice(0, 3000),\n        _user: user,\n      },\n    });\n  }\n}\n\nreturn output;\n"
       },
-      "id": "pre-filter",
+      "id": "8f2ad297-f204-4890-9759-4d45554bd59b",
       "name": "Keyword Pre-Filter",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 300]
+      "position": [
+        384,
+        1552
+      ]
     },
     {
       "parameters": {
-        "batchSize": 1,
-        "options": {}
-      },
-      "id": "split-jobs",
-      "name": "Split Jobs",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [1560, 300]
-    },
-    {
-      "parameters": {
-        "resource": "chat",
-        "operation": "create",
-        "modelId": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list"
-        },
-        "messages": {
-          "values": [
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "role": "system",
-              "content": "You are an expert technical recruiter. Score how well a job matches a candidate CV. Return ONLY valid JSON with no markdown, no code blocks, just the raw JSON object."
-            },
-            {
-              "role": "user",
-              "content": "=Candidate CV:\n{{ $json._user.resume_text }}\n\nTarget Keywords: {{ $json._user.target_keywords.join(', ') }}\nTarget Roles: {{ $json._user.target_roles.join(', ') }}\nPreferred Work Modes: {{ $json._user.preferred_work_modes.join(', ') }}\nEmployment Types: {{ $json._user.employment_types.join(', ') }}\n\nJob Title: {{ $json.title }}\nJob Description: {{ ($json.content || $json.description || '').substring(0, 2000) }}\n\nScore this job 0-100:\n- Technical skills match (40 pts)\n- Seniority match (30 pts)\n- Relevance match (30 pts)\n\nReturn this exact JSON:\n{\"score\": <number>, \"reasoning\": \"<one sentence>\", \"company\": \"<company name>\", \"location\": \"<location>\", \"remote\": <true or false>}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'gpt-4o-mini',\n  temperature: 0.1,\n  messages: [\n    {\n      role: 'system',\n      content: 'You are an expert technical recruiter. Score how well a job matches a candidate CV on a scale of 0 to 100 only (never 0-10). 0 means no match, 50 means partial, 70 or higher means strong, and 90 or higher means excellent. Return ONLY valid JSON with no markdown or code blocks. Return exactly: {\"score\": number, \"reasoning\": \"one sentence\", \"company\": \"company name\", \"location\": \"location\", \"remote\": boolean}'\n    },\n    {\n      role: 'user',\n      content: [\n        'Candidate CV:',\n        String($json._user.resume_text || ''),\n        '',\n        'Target Keywords: ' + (($json._user.target_keywords || []).join(', ')),\n        'Target Roles: ' + (($json._user.target_roles || []).join(', ')),\n        'Preferred Work Modes: ' + (($json._user.preferred_work_modes || []).join(', ')),\n        'Preferred Locations: ' + (($json._user.preferred_locations || []).join(', ')),\n        'Employment Types: ' + (($json._user.employment_types || []).join(', ')),\n        '',\n        'Job Title: ' + ($json.title || $json.job_title || ''),\n        'Company: ' + ($json.company_name || $json.company || 'Unknown'),\n        'Location: ' + (($json.location && $json.location.name) || $json.candidate_required_location || 'Not specified'),\n        '',\n        'Job Description:',\n        String($json.content || $json.description || '').slice(0, 3000)\n      ].join('\\n')\n    }\n  ]\n}) }}",
         "options": {
-          "temperature": 0.1
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1200
+            }
+          }
         }
       },
-      "id": "score-with-ai",
+      "id": "31f600bd-310e-4b05-9b6e-436fe9905a4e",
       "name": "Score With GPT-4o-mini",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1.3,
-      "position": [1780, 300],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        752,
+        1552
+      ],
       "credentials": {
+        "httpHeaderAuth": {
+          "id": "pl74RvtygShKayYL",
+          "name": "OpenAI Auth"
+        },
         "openAiApi": {
-          "id": "openai-creds",
-          "name": "OpenAI"
+          "id": "SskrtKn16fOicEvw",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst jobs = $('Extract Job Details').all();\n\nfunction normalizeScore(value) {\n  const score = Number(value);\n  if (!Number.isFinite(score) || score < 0) return 0;\n  if (score > 0 && score <= 10) return Math.round(score * 10);\n  return Math.min(100, Math.round(score));\n}\n\nreturn items.map((item, index) => {\n  const aiItem = item.json;\n  const job = jobs[index]?.json || {};\n  const raw =\n    aiItem.choices?.[0]?.message?.content ||\n    aiItem.message?.content ||\n    aiItem.content ||\n    '';\n\n  let parsed;\n  try {\n    parsed = JSON.parse(raw);\n  } catch (e) {\n    const match = String(raw).match(/\\{[\\s\\S]*\\}/);\n    if (match) {\n      try {\n        parsed = JSON.parse(match[0]);\n      } catch (e2) {\n        parsed = {\n          score: 0,\n          reasoning: 'Failed to parse',\n          company: 'Unknown',\n          location: 'Unknown',\n          remote: false,\n        };\n      }\n    } else {\n      parsed = {\n        score: 0,\n        reasoning: 'Failed to parse',\n        company: 'Unknown',\n        location: 'Unknown',\n        remote: false,\n      };\n    }\n  }\n\n  return {\n    json: {\n      ...job,\n      ai_score: normalizeScore(parsed.score),\n      ai_reasoning: parsed.reasoning || '',\n      ai_company: parsed.company || job.company_name || job.company || 'Unknown',\n      ai_location:\n        parsed.location ||\n        (job.location && job.location.name\n          ? job.location.name\n          : job.candidate_required_location || 'Unknown'),\n      ai_remote: Boolean(parsed.remote),\n    },\n  };\n});\n"
+      },
+      "id": "f4ad7de4-01f1-44e0-83a9-bf7f75c2e4fc",
+      "name": "Parse AI Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        1552
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://job-funnel-seven.vercel.app/api/ingest",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  user_id: $json._user.user_id,\n  company: $json.ai_company || $json.company_name || $json.company || 'Unknown',\n  role: $json.title || $json.job_title || 'Unknown',\n  job_url: $json.absolute_url || $json.url || $json.job_url || '',\n  location: $json.ai_location || ($json.location && $json.location.name ? $json.location.name : ($json.candidate_required_location || 'Not specified')),\n  remote: Boolean($json.ai_remote),\n  employment_type: $json.employment_type || 'permanent',\n  salary_min: $json.salary_min ?? null,\n  salary_max: $json.salary_max ?? null,\n  salary_currency: $json.salary_currency || 'GBP',\n  day_rate_min: $json.day_rate_min ?? null,\n  day_rate_max: $json.day_rate_max ?? null,\n  contact_email: $json.contact_email || null,\n  ai_score: $json.ai_score ?? null,\n  ai_reasoning: $json.ai_reasoning || null\n}) }}",
+        "options": {}
+      },
+      "id": "f674b460-1a76-4042-b12a-f67f3dc480a1",
+      "name": "Insert Into Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1424,
+        1552
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5fb1NfmXW5uPpt4l",
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "language": "javaScript",
-        "jsCode": "const item = $input.first();\nconst raw = item.json.message.content;\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch(e) {\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try {\n      parsed = JSON.parse(match[0]);\n    } catch(e2) {\n      return [];\n    }\n  } else {\n    return [];\n  }\n}\n\nconst original = item.json;\n\nreturn [{\n  json: {\n    ...original,\n    ai_score: parsed.score || 0,\n    ai_reasoning: parsed.reasoning || '',\n    ai_company: parsed.company || '',\n    ai_location: parsed.location || '',\n    ai_remote: parsed.remote || false\n  }\n}];"
+        "jsCode": "const items = $input.all();\n\n/**\n * Extract salary / day-rate / recruiter email from _job_text only.\n * Prefer explicit pay-range language, then first \u00a3/$/\u20ac range found.\n * Example: \"base pay range for this role is $200,000 - $300,000\"\n */\nfunction decodeEntities(text) {\n  return String(text || '')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;|&apos;/gi, \"'\")\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\n/** Normalize HTML / obfuscated emails so they can be matched. */\nfunction normalizeForEmailScan(text) {\n  let t = decodeEntities(text);\n  const preserved = [];\n\n  // Capture mailto: addresses before tag stripping (they live inside href attrs)\n  t = t.replace(\n    /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/gi,\n    (_, email) => {\n      preserved.push(email.toLowerCase());\n      return ' ';\n    }\n  );\n\n  t = t\n    .replace(/<[^>]+>/g, ' ')\n    // people [at] company.com  OR  people(at)company.com\n    .replace(\n      /\\b([a-z0-9._%+-]+)\\s*(?:\\[\\s*at\\s*\\]|\\(\\s*at\\s\\)|\\sat\\s)\\s*([a-z0-9.-]+\\.[a-z]{2,})\\b/gi,\n      '$1@$2'\n    )\n    // people at company dot com\n    .replace(\n      /\\b([a-z0-9._%+-]+)\\s+at\\s+([a-z0-9.-]+)\\s+dot\\s+([a-z]{2,})\\b/gi,\n      '$1@$2.$3'\n    )\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  if (preserved.length) {\n    t = `${t} ${preserved.join(' ')}`.trim();\n  }\n\n  return t;\n}\n\nfunction parseAmount(raw, thousandSuffix) {\n  if (!raw) return null;\n  // EU thousands: 70.000 or 1.200.000\n  const normalized = /^\\d{1,3}(\\.\\d{3})+$/.test(raw)\n    ? raw.replace(/\\./g, '')\n    : raw.replace(/,/g, '');\n  const n = Number.parseFloat(normalized);\n  if (!Number.isFinite(n) || n <= 0) return null;\n  return thousandSuffix ? Math.round(n * 1000) : Math.round(n);\n}\n\nfunction detectCurrency(symbol, surrounding) {\n  const s = surrounding || '';\n  if (/\\bAUD\\b|Australian\\s+dollars?/i.test(s)) return 'AUD';\n  if (/\\bGBP\\b|\\bpounds?\\b/i.test(s)) return 'GBP';\n  if (/\\bEUR\\b|\\beuros?\\b/i.test(s)) return 'EUR';\n  if (/\\bUSD\\b|U\\.?S\\.?\\s*dollars?/i.test(s)) return 'USD';\n  if (symbol === '\u00a3') return 'GBP';\n  if (symbol === '\u20ac') return 'EUR';\n  if (symbol === '$') return 'USD';\n  return 'GBP';\n}\n\nconst RANGE_RE =\n  /([\u00a3$\u20ac])\\s*([\\d,.]+)\\s*(k)?\\s*(?:[-\u2013\u2014]|to)\\s*([\u00a3$\u20ac])?\\s*([\\d,.]+)\\s*(k)?/i;\nconst SINGLE_RE = /([\u00a3$\u20ac])\\s*([\\d,.]+)\\s*(k)?/gi;\nconst PAY_CONTEXT_RE =\n  /(?:base\\s+pay\\s+range|pay\\s+range|salary\\s+range|compensation\\s+range|on\\s+target\\s+earnings|\\bOTE\\b|total\\s+compensation|day\\s*rate|daily\\s*rate)[^\u00a3$\u20ac]{0,120}([\u00a3$\u20ac])\\s*([\\d,.]+)\\s*(k)?(?:\\s*(?:[-\u2013\u2014]|to)\\s*([\u00a3$\u20ac])?\\s*([\\d,.]+)\\s*(k)?)?/i;\n\nconst EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\nconst EMAIL_BLOCKLIST =\n  /(noreply|no-reply|donotreply|do-not-reply|mailer-daemon|notifications?|unsubscribe|privacy|support@|help@|info@|hello@|@greenhouse\\.|@lever\\.|@workday\\.|@myworkday\\.|@indeed\\.|@linkedin\\.|@glassdoor\\.|@sentry\\.|@example\\.|@github\\.|@sentry\\.io)/i;\nconst EMAIL_LOCAL_PREFERRED =\n  /^(recruit|talent|careers|jobs|hiring|people|hr|resourcing|apply)\\b/i;\nconst EMAIL_CONTEXT_RE =\n  /(?:contact|email|reach\\s+out|get\\s+in\\s+touch|recruiter|hiring\\s+manager|talent\\s+partner|apply\\s+(?:to|via|at)|send\\s+(?:your\\s+)?(?:cv|resume))[\\s\\S]{0,80}?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/i;\nconst CONTRACT_HINTS =\n  /\\b(contract|contractor|freelance|day\\s*rate|daily\\s*rate|ir35|c2c|corp\\s*to\\s*corp)\\b/i;\nconst DAY_RATE_HINTS =\n  /\\b(day\\s*rate|daily\\s*rate|per\\s*day|\\/\\s*day|p\\/d)\\b/i;\n\nfunction pickContactEmail(rawText) {\n  const text = normalizeForEmailScan(rawText);\n  if (!text) return null;\n\n  // Prefer email mentioned next to contact / recruiter wording\n  const contextual = EMAIL_CONTEXT_RE.exec(text);\n  if (contextual && !EMAIL_BLOCKLIST.test(contextual[1])) {\n    return contextual[1].trim().toLowerCase();\n  }\n\n  const emails = text.match(EMAIL_RE) || [];\n  const candidates = [\n    ...new Set(emails.map((e) => e.trim().toLowerCase())),\n  ].filter((e) => !EMAIL_BLOCKLIST.test(e));\n  if (!candidates.length) return null;\n\n  const preferredLocal = candidates.find((e) =>\n    EMAIL_LOCAL_PREFERRED.test(e.split('@')[0] || '')\n  );\n  if (preferredLocal) return preferredLocal;\n\n  const preferredDomain = candidates.find((e) =>\n    /recruit|talent|careers|jobs|hiring|people|\\.hr@/.test(e)\n  );\n  return preferredDomain || candidates[0];\n}\n\nfunction extractSalary(text) {\n  // 1) Prefer amounts near pay-range wording\n  const ctx = PAY_CONTEXT_RE.exec(text);\n  if (ctx) {\n    const min = parseAmount(ctx[2], ctx[3]);\n    const max = ctx[5] ? parseAmount(ctx[5], ctx[6]) : min;\n    if (min != null) {\n      const surrounding = text.slice(\n        Math.max(0, ctx.index - 20),\n        Math.min(text.length, ctx.index + ctx[0].length + 24)\n      );\n      return {\n        min,\n        max: max != null ? max : min,\n        currency: detectCurrency(ctx[1], surrounding),\n      };\n    }\n  }\n\n  // 2) Any explicit currency range: $200,000 - $300,000\n  const range = RANGE_RE.exec(text);\n  if (range) {\n    const min = parseAmount(range[2], range[3]);\n    const max = parseAmount(range[5], range[6]);\n    if (min != null && max != null) {\n      const surrounding = text.slice(\n        Math.max(0, range.index - 20),\n        Math.min(text.length, range.index + range[0].length + 24)\n      );\n      return {\n        min,\n        max,\n        currency: detectCurrency(range[1], surrounding),\n      };\n    }\n  }\n\n  // 3) Fallback: first two standalone currency amounts\n  const amounts = [];\n  let symbol = '$';\n  let match;\n  SINGLE_RE.lastIndex = 0;\n  while ((match = SINGLE_RE.exec(text)) !== null) {\n    const value = parseAmount(match[2], match[3]);\n    if (value == null) continue;\n    if (!amounts.length) symbol = match[1];\n    amounts.push({ value, index: match.index });\n    if (amounts.length >= 2) break;\n  }\n\n  if (!amounts.length) return null;\n\n  const min = amounts[0].value;\n  const max = amounts.length > 1 ? amounts[1].value : amounts[0].value;\n  const surrounding = text.slice(\n    Math.max(0, amounts[0].index - 20),\n    Math.min(text.length, (amounts[1]?.index || amounts[0].index) + 40)\n  );\n\n  return {\n    min,\n    max,\n    currency: detectCurrency(symbol, surrounding),\n  };\n}\n\nfunction parseJobDetails(rawText) {\n  const text = decodeEntities(rawText);\n  const empty = {\n    salary_min: null,\n    salary_max: null,\n    salary_currency: 'GBP',\n    day_rate_min: null,\n    day_rate_max: null,\n    contact_email: null,\n    employment_type: 'permanent',\n  };\n  if (!text) return empty;\n\n  const extracted = extractSalary(text);\n  // Recruiter / contact email from the same _job_text\n  const contact_email = pickContactEmail(rawText);\n\n  let salary_min = null;\n  let salary_max = null;\n  let day_rate_min = null;\n  let day_rate_max = null;\n  let salary_currency = 'GBP';\n  let usedDayRate = false;\n\n  if (extracted) {\n    const orderedMin = Math.min(extracted.min, extracted.max);\n    const orderedMax = Math.max(extracted.min, extracted.max);\n    salary_currency = extracted.currency;\n    const looksLikeDayRate =\n      DAY_RATE_HINTS.test(text) || orderedMax <= 2500;\n\n    if (looksLikeDayRate) {\n      day_rate_min = orderedMin;\n      day_rate_max = orderedMax;\n      usedDayRate = true;\n    } else {\n      salary_min = orderedMin;\n      salary_max = orderedMax;\n    }\n  }\n\n  return {\n    salary_min,\n    salary_max,\n    salary_currency,\n    day_rate_min,\n    day_rate_max,\n    contact_email,\n    employment_type:\n      usedDayRate || CONTRACT_HINTS.test(text) ? 'contract' : 'permanent',\n  };\n}\n\nreturn items.map((item) => {\n  const job = item.json;\n  // Always prefer the long _job_text field (pay often appears near the end)\n  const details = parseJobDetails(job._job_text || '');\n\n  return {\n    json: {\n      ...job,\n      ...details,\n    },\n  };\n});\n"
       },
-      "id": "parse-score",
-      "name": "Parse AI Score",
+      "id": "extract-job-details",
+      "name": "Extract Job Details",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 300]
+      "position": [
+        528,
+        1552
+      ]
     },
     {
       "parameters": {
@@ -162,7 +266,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -179,85 +284,17 @@
         },
         "options": {}
       },
-      "id": "filter-by-score",
+      "id": "a1b2c3d4-filter-by-score-0001",
       "name": "Filter By Score",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2,
-      "position": [2220, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://YOUR_APP_URL/api/ingest",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "user_id",
-              "value": "={{ $json._user.user_id }}"
-            },
-            {
-              "name": "company",
-              "value": "={{ $json.ai_company || ($json.company && $json.company.name ? $json.company.name : 'Unknown') }}"
-            },
-            {
-              "name": "role",
-              "value": "={{ $json.title }}"
-            },
-            {
-              "name": "job_url",
-              "value": "={{ $json.absolute_url || $json.hostedUrl || '' }}"
-            },
-            {
-              "name": "location",
-              "value": "={{ $json.ai_location || ($json.location && $json.location.name ? $json.location.name : 'Not specified') }}"
-            },
-            {
-              "name": "remote",
-              "value": "={{ $json.ai_remote }}"
-            },
-            {
-              "name": "employment_type",
-              "value": "permanent"
-            },
-            {
-              "name": "ai_score",
-              "value": "={{ $json.ai_score }}"
-            },
-            {
-              "name": "ai_reasoning",
-              "value": "={{ $json.ai_reasoning }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "ingest-job",
-      "name": "Insert Into Dashboard",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [2440, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "n8n-auth",
-          "name": "Job Funnel Auth"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "language": "javaScript",
-        "jsCode": "const results = $input.all();\nconst inserted = results.filter(r => r.json.inserted > 0).length;\nconst skipped = results.filter(r => r.json.skipped > 0).length;\n\nconsole.log(`Morning Job Hunt Complete`);\nconsole.log(`Inserted: ${inserted}`);\nconsole.log(`Skipped: ${skipped}`);\n\nreturn [{\n  json: {\n    summary: `Morning job hunt complete. ${inserted} new jobs discovered, ${skipped} duplicates skipped.`,\n    inserted,\n    skipped,\n    timestamp: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "summary",
-      "name": "Summary",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2660, 300]
+      "position": [
+        1200,
+        1552
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -290,7 +327,7 @@
             "index": 0
           },
           {
-            "node": "Fetch Lever Jobs",
+            "node": "Fetch Remotive Jobs",
             "type": "main",
             "index": 0
           }
@@ -301,6 +338,28 @@
       "main": [
         [
           {
+            "node": "Tag Greenhouse User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Remotive Jobs": {
+      "main": [
+        [
+          {
+            "node": "Tag Remotive User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Greenhouse User": {
+      "main": [
+        [
+          {
             "node": "Merge Job Lists",
             "type": "main",
             "index": 0
@@ -308,7 +367,7 @@
         ]
       ]
     },
-    "Fetch Lever Jobs": {
+    "Tag Remotive User": {
       "main": [
         [
           {
@@ -334,14 +393,14 @@
       "main": [
         [
           {
-            "node": "Split Jobs",
+            "node": "Extract Job Details",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Split Jobs": {
+    "Extract Job Details": {
       "main": [
         [
           {
@@ -397,12 +456,18 @@
       ]
     }
   },
+  "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
   },
-  "staticData": null,
-  "tags": [],
-  "triggerCount": 0,
-  "updatedAt": "2025-01-01T00:00:00.000Z",
-  "versionId": "1"
+  "versionId": "02e78518-95d5-4fb7-a132-4ef4b3b760ea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c7cdc1e729b6a815a57f12018e031141124992ef4fbbe90ec43ef43bbe864fc"
+  },
+  "nodeGroups": [],
+  "id": "IYNctRxkuqYfgy6d",
+  "tags": []
 }

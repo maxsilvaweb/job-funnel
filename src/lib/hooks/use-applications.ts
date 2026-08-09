@@ -67,8 +67,8 @@ export function useUpdateStatus() {
     }) => {
       const updateData: Partial<Application> = { status };
       if (status === 'on_hold') {
-        if (onHoldComment) updateData.on_hold_comment = onHoldComment;
-        if (onHoldAt) updateData.on_hold_at = onHoldAt;
+        updateData.on_hold_comment = onHoldComment || null;
+        updateData.on_hold_at = onHoldAt || null;
       }
 
       const { error: updateError } = await supabase
