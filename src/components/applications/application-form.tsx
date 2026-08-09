@@ -4,14 +4,20 @@
 
 import { useForm } from '@tanstack/react-form';
 import { createApplication, updateApplication } from '@/actions/applications';
-import { SOURCE_LABELS, WORK_MODE_LABELS, getApplicationWorkMode } from '@/lib/constants';
+import {
+  SOURCE_LABELS,
+  WORK_MODE_LABELS,
+  getApplicationWorkMode,
+} from '@/lib/constants';
 import { Slider } from '@/components/ui/slider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { CheckCircle2, LogOut, RotateCcw, Save } from 'lucide-react';
+import { Calendar, CheckCircle2, LogOut, RotateCcw, Save } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
+import { DateTimeInput } from '@/components/ui/date-time-input';
 import { OnHoldCommentModal } from './on-hold-comment-modal';
 import type { Application } from '@/types';
+import type { ApplicationFormData } from '@/lib/schemas/application';
 import type {
   ApplicationSource,
   ApplicationStatus,
@@ -57,6 +63,7 @@ function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
     contact_email: '',
     notes: '',
     on_hold_comment: '',
+    on_hold_at: '',
     priority: 0,
   };
 }
@@ -67,7 +74,8 @@ export function ApplicationForm({
 }: ApplicationFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [showOnHoldModal, setShowOnHoldModal] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [pendingFormData, setPendingFormData] =
+    useState<ApplicationFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<{
     company: string;
@@ -103,6 +111,7 @@ export function ApplicationForm({
       contact_email: application?.contact_email ?? '',
       notes: application?.notes ?? '',
       on_hold_comment: application?.on_hold_comment ?? '',
+      on_hold_at: application?.on_hold_at ?? '',
       priority: application?.priority ?? 0,
     },
     onSubmit: async ({ value }) => {
@@ -112,9 +121,9 @@ export function ApplicationForm({
         setShowOnHoldModal(true);
         return;
       }
-      
-      const payload = pendingFormData 
-        ? { ...pendingFormData, on_hold_comment: value.on_hold_comment } 
+
+      const payload = pendingFormData
+        ? { ...pendingFormData, on_hold_comment: value.on_hold_comment }
         : value;
 
       setSubmitting(true);
@@ -124,7 +133,7 @@ export function ApplicationForm({
         const result = application
           ? await updateApplication(application.id, payload)
           : await createApplication(payload);
-        
+
         // ... (rest of the submission logic)
 
         if (result.error) {
@@ -236,9 +245,11 @@ export function ApplicationForm({
           setShowOnHoldModal(false);
           setPendingFormData(null);
         }}
-        onConfirm={(comment) => {
+        onConfirm={(comment, onHoldAt) => {
           form.setFieldValue('on_hold_comment', comment);
+          form.setFieldValue('on_hold_at', onHoldAt);
           setShowOnHoldModal(false);
+          setPendingFormData(null);
           form.handleSubmit(); // Re-trigger submission
         }}
       />
@@ -514,17 +525,12 @@ export function ApplicationForm({
 
         <form.Field name="date_applied">
           {(field) => (
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                Date Applied *
-              </label>
-              <input
-                type="date"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
+            <DateTimeInput
+              type="date"
+              label="Date Applied *"
+              value={field.state.value}
+              onChange={(val) => field.handleChange(val)}
+            />
           )}
         </form.Field>
       </div>
@@ -556,9 +562,7 @@ export function ApplicationForm({
               </label>
               <select
                 value={field.state.value}
-                onChange={(e) =>
-                  field.handleChange(e.target.value as WorkMode)
-                }
+                onChange={(e) => field.handleChange(e.target.value as WorkMode)}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 {(Object.keys(WORK_MODE_LABELS) as WorkMode[]).map((mode) => (
@@ -627,27 +631,51 @@ export function ApplicationForm({
         </form.Field>
       </div>
 
-      {/* On-Hold Comment */}
-      {/* On-Hold Comment */}
+      {/* On-Hold Section */}
       <form.Subscribe selector={(state) => state.values.status}>
         {(status) =>
           status === 'on_hold' && (
-            <form.Field name="on_hold_comment">
-              {(field) => (
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">
-                    On-Hold Comment
-                  </label>
-                  <textarea
-                    value={field.state.value ?? ''}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    rows={3}
-                    placeholder="Enter reason for on-hold..."
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-              )}
-            </form.Field>
+            <div className="space-y-4">
+              <form.Field name="on_hold_at">
+                {(field) => (
+                  <div className="w-full sm:w-1/2">
+                    <DateTimeInput
+                      type="datetime-local"
+                      label="On-Hold Since"
+                      value={
+                        field.state.value
+                          ? new Date(field.state.value)
+                              .toISOString()
+                              .slice(0, 16)
+                          : ''
+                      }
+                      onChange={(val) => {
+                        field.handleChange(
+                          val ? new Date(val).toISOString() : '',
+                        );
+                      }}
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="on_hold_comment">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      On-Hold Comment
+                    </label>
+                    <textarea
+                      value={field.state.value ?? ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      rows={6}
+                      placeholder="Enter reason for on-hold..."
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            </div>
           )
         }
       </form.Subscribe>
@@ -662,7 +690,7 @@ export function ApplicationForm({
             <textarea
               value={field.state.value ?? ''}
               onChange={(e) => field.handleChange(e.target.value)}
-              rows={3}
+              rows={6}
               placeholder="Any relevant notes..."
               className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />

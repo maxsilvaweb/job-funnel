@@ -54,6 +54,7 @@ import {
 } from 'react';
 import { clsx } from 'clsx';
 import { useToast } from '@/lib/hooks/use-toast';
+import { useSearchParams } from 'next/navigation';
 import {
   DEFAULT_PAGE_SIZE,
   Pagination,
@@ -208,6 +209,7 @@ const toggleClassName = (active: boolean) =>
 export function ApplicationTable() {
   const { data: applications, isLoading, isError, error } = useApplications();
   const deleteApp = useDeleteApplication();
+  const searchParams = useSearchParams();
   const [sortField, setSortField] = useState<SortField>('date_applied');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -215,7 +217,7 @@ export function ApplicationTable() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>(
-    'all',
+    (searchParams.get('status') as ApplicationStatus) || 'all',
   );
   const [sourceFilter, setSourceFilter] = useState<ApplicationSource | 'all'>(
     'all',

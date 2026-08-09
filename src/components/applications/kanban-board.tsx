@@ -40,8 +40,11 @@ export function KanbanBoard() {
   const { data: applications, isLoading, isError, error } = useApplications();
   const updateStatus = useUpdateStatus();
   const [activeApp, setActiveApp] = useState<Application | null>(null);
-  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: ApplicationStatus } | null>(null);
-  
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
+    id: string;
+    status: ApplicationStatus;
+  } | null>(null);
+
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [previewRect, setPreviewRect] = useState<DOMRect | null>(null);
   const [containerRect, setContainerRect] = useState<DOMRect | null>(null);
@@ -177,12 +180,13 @@ export function KanbanBoard() {
     }
   }
 
-  function handleOnHoldConfirm(comment: string) {
+  function handleOnHoldConfirm(comment: string, onHoldAt: string) {
     if (pendingStatusUpdate) {
-      updateStatus.mutate({ 
-        id: pendingStatusUpdate.id, 
+      updateStatus.mutate({
+        id: pendingStatusUpdate.id,
         status: pendingStatusUpdate.status,
-        onHoldComment: comment
+        onHoldComment: comment,
+        onHoldAt,
       });
       setPendingStatusUpdate(null);
     }
@@ -343,10 +347,12 @@ export function KanbanBoard() {
                 count={col.applications.length}
               >
                 {col.applications.map((app) => (
-                  <ApplicationCard 
-                    key={app.id} 
-                    application={app} 
-                    onMouseEnter={(e) => schedulePreview(app.id, e.currentTarget)}
+                  <ApplicationCard
+                    key={app.id}
+                    application={app}
+                    onMouseEnter={(e) =>
+                      schedulePreview(app.id, e.currentTarget)
+                    }
                     onMouseLeave={scheduleHidePreview}
                   />
                 ))}
@@ -377,10 +383,10 @@ export function KanbanBoard() {
           <div className="relative">
             <ApplicationCard application={activeApp} isDragOverlay />
             {activeApp.status === 'on_hold' && activeApp.on_hold_comment && (
-               <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-600 shadow-lg">
-                  <p className="font-semibold text-zinc-900 mb-1">On Hold</p>
-                  <p>{activeApp.on_hold_comment}</p>
-                </div>
+              <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-600 shadow-lg">
+                <p className="font-semibold text-zinc-900 mb-1">On Hold</p>
+                <p>{activeApp.on_hold_comment}</p>
+              </div>
             )}
           </div>
         ) : null}

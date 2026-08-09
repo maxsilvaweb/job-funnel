@@ -304,4 +304,25 @@ html.dark {
     stroke: none !important;
     outline: none !important;
   }
+
+  /* Force emerald theme on native date/time pickers */
+  input[type='date'],
+  input[type='time'],
+  input[type='datetime-local'] {
+    accent-color: #10b981 !important;
+    color-scheme: dark !important;
+  }
+
+  /* Target the dropdown/picker parts more aggressively */
+  ::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+
+  /* Selection highlights in the native picker scroll lists (where supported) */
+  input[type='date']::selection,
+  input[type='time']::selection,
+  input[type='datetime-local']::selection {
+    background-color: #10b981 !important;
+    color: white !important;
+  }
 }

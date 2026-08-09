@@ -6,6 +6,7 @@ import { FunnelChart } from '@/components/dashboard/funnel-chart';
 import { ApplicationTrendChart } from '@/components/dashboard/application-trend-chart';
 import { ConversionRates } from '@/components/dashboard/conversion-rates';
 import { DiagnosisCard } from '@/components/dashboard/diagnosis-card';
+import { OnHoldCard } from '@/components/dashboard/on-hold-card';
 import { WeeklyTargets } from '@/components/dashboard/weekly-targets';
 import { getApplications } from '@/actions/applications';
 import { buildFunnelData } from '@/lib/utils/funnel';
@@ -37,9 +38,12 @@ export default async function DashboardPage() {
         <ConversionRates />
 
         {/* Diagnosis + weekly targets */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <DiagnosisCard />
-          <WeeklyTargets />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+          <OnHoldCard />
+          <div className="space-y-6">
+            <WeeklyTargets />
+            <DiagnosisCard />
+          </div>
         </div>
       </div>
     </Shell>
