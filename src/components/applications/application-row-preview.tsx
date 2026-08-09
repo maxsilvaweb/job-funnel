@@ -62,35 +62,41 @@ export function ApplicationRowPreview({
 
   useLayoutEffect(() => {
     const pad = 12;
-    const gap = 8;
-    const height = panelRef.current?.offsetHeight ?? 320;
+    const gap = 4;
+    const height = panelRef.current?.offsetHeight ?? 400;
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
 
-    // Left-align under the company name, stay inside the table.
-    let left = anchorRect.left - containerRect.left;
-    left = Math.max(
-      pad,
-      Math.min(left, containerRect.width - PREVIEW_WIDTH - pad),
-    );
-
+    // Use fixed positioning relative to the viewport for maximum reliability
+    let top = anchorRect.bottom + gap;
     let placement: 'below' | 'above' = 'below';
-    let top = anchorRect.bottom - containerRect.top + gap;
-    if (top + height > containerRect.height - pad) {
-      placement = 'above';
-      top = Math.max(
-        pad,
-        anchorRect.top - containerRect.top - height - gap,
-      );
+
+    // If it would go off the bottom of the screen, show it above the row
+    if (top + height > viewportHeight - pad) {
+      const topAbove = anchorRect.top - height - gap;
+      if (topAbove > pad) {
+        top = topAbove;
+        placement = 'above';
+      } else {
+        // If it won't fit above OR below, stick it to the bottom of the viewport
+        top = viewportHeight - height - pad;
+        placement = top > anchorRect.top ? 'below' : 'above';
+      }
     }
 
-    const nameCenterX =
-      anchorRect.left - containerRect.left + anchorRect.width / 2;
+    // Horizontal position: align with the left edge of the row, but stay on screen
+    let left = anchorRect.left;
+    left = Math.max(pad, Math.min(left, viewportWidth - PREVIEW_WIDTH - pad));
+
+    // Arrow points to the horizontal center of the anchor (the company name cell)
+    const anchorCenterX = anchorRect.left + anchorRect.width / 2;
     const arrowLeft = Math.max(
       16,
-      Math.min(nameCenterX - left - 6, PREVIEW_WIDTH - 28),
+      Math.min(anchorCenterX - left - 6, PREVIEW_WIDTH - 32),
     );
 
     setCoords({ top, left, arrowLeft, placement });
-  }, [anchorRect, containerRect]);
+  }, [anchorRect]);
 
   const workMode = getApplicationWorkMode(app);
   const pay =
@@ -109,7 +115,7 @@ export function ApplicationRowPreview({
       ref={panelRef}
       role="tooltip"
       data-application-preview
-      className="pointer-events-auto absolute z-20 w-[340px] rounded-xl border border-zinc-200 bg-white p-4 shadow-xl"
+      className="pointer-events-auto fixed z-[100] w-[340px] rounded-xl border border-zinc-200 bg-white p-4 shadow-2xl"
       style={{ top: coords.top, left: coords.left }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

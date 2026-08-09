@@ -19,12 +19,18 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn('p-3', className)}
+      captionLayout="dropdown"
+      startMonth={new Date(2020, 0)}
+      endMonth={new Date(2030, 11)}
       classNames={{
-        months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-        month: 'relative space-y-4',
+        months: 'flex flex-col sm:flex-row justify-center',
+        month: 'relative space-y-4 w-full flex flex-col items-center',
         month_caption:
-          'flex justify-center pt-1 items-center text-zinc-900 dark:text-white mb-4 h-7',
-        caption_label: 'text-sm font-medium',
+          'flex justify-center pt-1 items-center text-zinc-900 dark:text-white mb-4 h-7 gap-1 w-full',
+        caption_label: 'hidden',
+        dropdowns: 'flex justify-center items-center gap-1',
+        dropdown:
+          'h-7 bg-transparent px-2 text-sm font-medium border-zinc-200 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500',
         nav: 'flex items-center',
         button_previous: cn(
           buttonVariants({ variant: 'outline' }),
@@ -34,7 +40,7 @@ function Calendar({
           buttonVariants({ variant: 'outline' }),
           'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 absolute right-2 top-[10px] z-20',
         ),
-        month_grid: 'w-full border-collapse space-y-1',
+        month_grid: 'w-full border-collapse space-y-1 mx-auto',
         weekdays: 'flex',
         weekday:
           'text-zinc-500 dark:text-zinc-400 rounded-md w-9 font-normal text-[0.8rem]',

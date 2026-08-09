@@ -6,9 +6,11 @@ import { useForm } from '@tanstack/react-form';
 import { createApplication, updateApplication } from '@/actions/applications';
 import {
   SOURCE_LABELS,
+  STAGE_LABELS,
   WORK_MODE_LABELS,
   getApplicationWorkMode,
 } from '@/lib/constants';
+import { APPLICATION_STATUSES } from '@/types';
 import { Slider } from '@/components/ui/slider';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -47,7 +49,7 @@ function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
     role: '',
     employment_type: (sticky?.employment_type ?? 'permanent') as EmploymentType,
     source: (sticky?.source ?? 'linkedin') as ApplicationSource,
-    status: (sticky?.status ?? 'applied') as ApplicationStatus,
+    status: (sticky?.status ?? 'discovered') as ApplicationStatus,
     date_applied:
       sticky?.date_applied ?? new Date().toISOString().split('T')[0],
     salary_min: null as number | null,
@@ -91,7 +93,7 @@ export function ApplicationForm({
       employment_type: (application?.employment_type ??
         'permanent') as EmploymentType,
       source: (application?.source ?? 'linkedin') as ApplicationSource,
-      status: (application?.status ?? 'applied') as ApplicationStatus,
+      status: (application?.status ?? 'discovered') as ApplicationStatus,
       date_applied:
         application?.date_applied ?? new Date().toISOString().split('T')[0],
       // Permanent
@@ -498,8 +500,8 @@ export function ApplicationForm({
         }
       </form.Subscribe>
 
-      {/* Source and Date */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Source, Status and Date */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <form.Field name="source">
           {(field) => (
             <div>
@@ -516,6 +518,29 @@ export function ApplicationForm({
                 {Object.entries(SOURCE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="status">
+          {(field) => (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                Status
+              </label>
+              <select
+                value={field.state.value}
+                onChange={(e) =>
+                  field.handleChange(e.target.value as ApplicationStatus)
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {APPLICATION_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {STAGE_LABELS[s]}
                   </option>
                 ))}
               </select>
@@ -636,28 +661,30 @@ export function ApplicationForm({
         {(status) =>
           status === 'on_hold' && (
             <div className="space-y-4">
-              <form.Field name="on_hold_at">
-                {(field) => (
-                  <div className="w-full sm:w-1/2">
-                    <DateTimeInput
-                      type="datetime-local"
-                      label="On-Hold Since"
-                      value={
-                        field.state.value
-                          ? new Date(field.state.value)
-                              .toISOString()
-                              .slice(0, 16)
-                          : ''
-                      }
-                      onChange={(val) => {
-                        field.handleChange(
-                          val ? new Date(val).toISOString() : '',
-                        );
-                      }}
-                    />
-                  </div>
-                )}
-              </form.Field>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-1">
+                <form.Field name="on_hold_at">
+                  {(field) => (
+                    <div className="w-full sm:w-1/2">
+                      <DateTimeInput
+                        type="datetime-local"
+                        label="On-Hold Since"
+                        value={
+                          field.state.value
+                            ? new Date(field.state.value)
+                                .toISOString()
+                                .slice(0, 16)
+                            : ''
+                        }
+                        onChange={(val) => {
+                          field.handleChange(
+                            val ? new Date(val).toISOString() : '',
+                          );
+                        }}
+                      />
+                    </div>
+                  )}
+                </form.Field>
+              </div>
 
               <form.Field name="on_hold_comment">
                 {(field) => (

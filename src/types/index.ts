@@ -140,7 +140,9 @@ export interface TrendPoint {
   /** ISO date key for the start of the bucket. */
   periodStart: string;
   applications: number;
+  on_hold: number;
   cumulative: number;
+  cumulative_on_hold: number;
 }
 
 /** @deprecated Use TrendPoint */

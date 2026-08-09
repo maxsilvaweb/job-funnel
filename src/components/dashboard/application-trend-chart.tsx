@@ -110,7 +110,13 @@ export function ApplicationTrendChart({
   const axisTickFill = isDark ? '#a1a1aa' : '#44755a';
   const cursorStroke = isDark ? '#2dd4bf' : '#10b981';
 
-  const hasAnyApps = data.some((d) => d.applications > 0 || d.cumulative > 0);
+  const hasAnyApps = data.some(
+    (d) =>
+      d.applications > 0 ||
+      d.cumulative > 0 ||
+      d.on_hold > 0 ||
+      d.cumulative_on_hold > 0,
+  );
 
   return (
     <Card className="h-full">
@@ -118,7 +124,7 @@ export function ApplicationTrendChart({
         <div className="min-w-0">
           <CardTitle>Application Trend</CardTitle>
           <p className="mt-1 text-xs text-zinc-500">
-            Volume and cumulative applications ({period.rangeLabel})
+            Volume and cumulative activity ({period.rangeLabel})
           </p>
         </div>
 
@@ -215,8 +221,18 @@ export function ApplicationTrendChart({
               <Line
                 type="monotone"
                 dataKey="cumulative"
-                name="Cumulative"
+                name="Cumulative Apps"
                 stroke="#0ea5e9"
+                strokeWidth={2}
+                strokeDasharray="5 4"
+                dot={false}
+                activeDot={{ r: 4 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="cumulative_on_hold"
+                name="Cumulative On Hold"
+                stroke="#f59e0b"
                 strokeWidth={2}
                 strokeDasharray="5 4"
                 dot={false}

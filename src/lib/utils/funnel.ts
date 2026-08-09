@@ -257,7 +257,9 @@ export function buildApplicationTrend(
       label: formatPeriodLabel(granularity, start),
       periodStart: format(start, 'yyyy-MM-dd'),
       applications: 0,
+      on_hold: 0,
       cumulative: 0,
+      cumulative_on_hold: 0,
     });
   }
 
@@ -265,24 +267,45 @@ export function buildApplicationTrend(
   const bucketByKey = new Map(buckets.map((b) => [b.periodStart, b]));
 
   for (const app of applications) {
-    if (!app.date_applied) continue;
-    const appliedAt = parseISO(app.date_applied);
-    if (appliedAt < firstStart || appliedAt > rangeEnd) continue;
+    const appliedAtStr = app.date_applied;
+    const onHoldAtStr = app.on_hold_at;
 
-    const key = bucketKey(granularity, appliedAt);
-    const bucket = bucketByKey.get(key);
-    if (!bucket) continue;
-    bucket.applications += 1;
+    // Track initial application volume
+    if (appliedAtStr) {
+      const appliedAt = parseISO(appliedAtStr);
+      if (appliedAt >= firstStart && appliedAt <= rangeEnd) {
+        const key = bucketKey(granularity, appliedAt);
+        const bucket = bucketByKey.get(key);
+        if (bucket) bucket.applications += 1;
+      }
+    }
+
+    // Track when things move to "On Hold"
+    if (onHoldAtStr && app.status === 'on_hold') {
+      const onHoldAt = parseISO(onHoldAtStr);
+      if (onHoldAt >= firstStart && onHoldAt <= rangeEnd) {
+        const key = bucketKey(granularity, onHoldAt);
+        const bucket = bucketByKey.get(key);
+        if (bucket) bucket.on_hold += 1;
+      }
+    }
   }
 
-  let running = applications.filter((app) => {
+  let runningApps = applications.filter((app) => {
     if (!app.date_applied) return false;
     return parseISO(app.date_applied) < firstStart;
   }).length;
 
+  let runningOnHold = applications.filter((app) => {
+    if (!app.on_hold_at || app.status !== 'on_hold') return false;
+    return parseISO(app.on_hold_at) < firstStart;
+  }).length;
+
   for (const bucket of buckets) {
-    running += bucket.applications;
-    bucket.cumulative = running;
+    runningApps += bucket.applications;
+    runningOnHold += bucket.on_hold;
+    bucket.cumulative = runningApps;
+    bucket.cumulative_on_hold = runningOnHold;
   }
 
   return buckets;

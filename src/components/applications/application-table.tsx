@@ -250,16 +250,26 @@ export function ApplicationTable() {
     clearPreviewTimers();
     const root = tableRootRef.current;
     if (!root) return;
-    const nameEl = row.querySelector(
-      '[data-preview-anchor]',
-    ) as HTMLElement | null;
-    const rowRect = (nameEl ?? row).getBoundingClientRect();
+
+    // Use the row itself for the anchor to ensure stable positioning
+    // instead of trying to find the name element which might have different padding
+    const rowRect = row.getBoundingClientRect();
     const rootRect = root.getBoundingClientRect();
-    showPreviewTimer.current = setTimeout(() => {
+
+    // If a preview is already open, update it immediately so it feels responsive
+    // and points to the correct row without delay.
+    if (previewId) {
       setPreviewId(appId);
       setPreviewRect(rowRect);
       setContainerRect(rootRect);
-    }, 280);
+    } else {
+      // Otherwise, use a short delay to avoid showing previews while just moving the mouse across
+      showPreviewTimer.current = setTimeout(() => {
+        setPreviewId(appId);
+        setPreviewRect(rowRect);
+        setContainerRect(rootRect);
+      }, 150);
+    }
   }
 
   function scheduleHidePreview() {
@@ -438,7 +448,9 @@ export function ApplicationTable() {
   }, [filtered, sortField, sortDirection]);
 
   useEffect(() => {
-    setPage(1);
+    if (page !== 1) {
+      setPage(1);
+    }
   }, [
     search,
     statusFilter,
@@ -454,7 +466,9 @@ export function ApplicationTable() {
 
   useEffect(() => {
     const totalPages = getTotalPages(sorted.length, pageSize);
-    if (page > totalPages) setPage(totalPages);
+    if (totalPages > 0 && page > totalPages) {
+      setPage(totalPages);
+    }
   }, [sorted.length, pageSize, page]);
 
   const paged = useMemo(

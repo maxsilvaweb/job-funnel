@@ -9,12 +9,15 @@ import { useMemo, useState } from 'react';
 import { formatDistanceToNow, differenceInCalendarDays } from 'date-fns';
 import { Pagination, paginateItems } from '@/components/ui/pagination';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const PAGE_SIZE = 5;
 
 export function OnHoldCard() {
   const { data: applications, isLoading } = useApplications();
   const [page, setPage] = useState(1);
+
+  const router = useRouter();
 
   const onHoldJobs = useMemo(() => {
     if (!applications) return [];
@@ -100,10 +103,11 @@ export function OnHoldCard() {
               return (
                 <tr
                   key={job.id}
-                  className="hover:bg-zinc-50/80 transition-colors"
+                  onClick={() => router.push(`/applications/edit/${job.id}`)}
+                  className="table-row-hover transition-colors cursor-pointer group"
                 >
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-zinc-900">
+                    <div className="font-semibold text-zinc-900 group-hover:text-emerald-700 transition-colors">
                       {job.company}
                     </div>
                     <div className="text-zinc-600 text-xs flex flex-col gap-0.5">
