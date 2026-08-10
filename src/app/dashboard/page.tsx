@@ -1,5 +1,7 @@
 // src/app/dashboard/page.tsx
 
+import { Plus } from 'lucide-react';
+import { ActionButton } from '@/components/ui/action-button';
 import { Shell } from '@/components/layout/shell';
 import { MetricsGrid } from '@/components/dashboard/metrics-grid';
 import { FunnelChart } from '@/components/dashboard/funnel-chart';
@@ -19,11 +21,19 @@ export default async function DashboardPage() {
     <Shell>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Job hunting is a funnel problem. Measure it. Fix the bottleneck.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900">Dashboard</h1>
+            <p className="mt-1 text-sm text-zinc-500">
+              Job hunting is a funnel problem. Measure it. Fix the bottleneck.
+            </p>
+          </div>
+          <ActionButton
+            href="/applications/new"
+            label="Add Application"
+            icon={<Plus className="h-4 w-4" />}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          />
         </div>
 
         {/* Metrics */}

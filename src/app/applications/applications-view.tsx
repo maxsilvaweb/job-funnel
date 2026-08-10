@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { KanbanBoard } from '@/components/applications/kanban-board';
 import { ApplicationTable } from '@/components/applications/application-table';
+import { ActionButton } from '@/components/ui/action-button';
 import { Plus, Kanban, Table2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -60,14 +61,12 @@ export function ApplicationsView({ view }: ApplicationsViewProps) {
             </Link>
           </div>
 
-          <button
-            type="button"
-            onClick={() => router.push('/applications/new')}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
-          >
-            <Plus className="h-4 w-4" />
-            Add Application
-          </button>
+          <ActionButton
+            href="/applications/new"
+            label="Add Application"
+            icon={<Plus className="h-4 w-4" />}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          />
         </div>
       </div>
 
