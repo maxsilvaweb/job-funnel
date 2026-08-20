@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core';
 import { useApplications, useUpdateStatus } from '@/lib/hooks/use-applications';
 import { OnHoldCommentModal } from './on-hold-comment-modal';
+import { RejectedCommentModal } from './rejected-comment-modal';
 import { KanbanColumn } from './kanban-column';
 import { ApplicationCard } from './application-card';
 import { ApplicationRowPreview } from './application-row-preview';
@@ -41,6 +42,10 @@ export function KanbanBoard() {
   const updateStatus = useUpdateStatus();
   const [activeApp, setActiveApp] = useState<Application | null>(null);
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
+    id: string;
+    status: ApplicationStatus;
+  } | null>(null);
+  const [pendingRejectedUpdate, setPendingRejectedUpdate] = useState<{
     id: string;
     status: ApplicationStatus;
   } | null>(null);
@@ -175,6 +180,8 @@ export function KanbanBoard() {
 
     if (newStatus === 'on_hold') {
       setPendingStatusUpdate({ id: appId, status: newStatus });
+    } else if (newStatus === 'rejected') {
+      setPendingRejectedUpdate({ id: appId, status: newStatus });
     } else {
       updateStatus.mutate({ id: appId, status: newStatus });
     }
@@ -189,6 +196,17 @@ export function KanbanBoard() {
         onHoldAt,
       });
       setPendingStatusUpdate(null);
+    }
+  }
+
+  function handleRejectedConfirm(comment: string) {
+    if (pendingRejectedUpdate) {
+      updateStatus.mutate({
+        id: pendingRejectedUpdate.id,
+        status: pendingRejectedUpdate.status,
+        rejectedComment: comment,
+      });
+      setPendingRejectedUpdate(null);
     }
   }
 
@@ -360,9 +378,9 @@ export function KanbanBoard() {
             ))}
           </div>
 
-          {previewId && previewRect && containerRect && (
+          {previewId && previewRect && containerRect && applications && (
             <ApplicationRowPreview
-              application={applications?.find((a) => a.id === previewId)!}
+              application={applications.find((a) => a.id === previewId)!}
               anchorRect={previewRect}
               containerRect={containerRect}
               onMouseEnter={keepPreviewOpen}
@@ -378,6 +396,12 @@ export function KanbanBoard() {
         onConfirm={handleOnHoldConfirm}
       />
 
+      <RejectedCommentModal
+        isOpen={!!pendingRejectedUpdate}
+        onClose={() => setPendingRejectedUpdate(null)}
+        onConfirm={handleRejectedConfirm}
+      />
+
       <DragOverlay>
         {activeApp ? (
           <div className="relative">
@@ -386,6 +410,12 @@ export function KanbanBoard() {
               <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-600 shadow-lg">
                 <p className="font-semibold text-zinc-900 mb-1">On Hold</p>
                 <p>{activeApp.on_hold_comment}</p>
+              </div>
+            )}
+            {activeApp.status === 'rejected' && activeApp.rejected_comment && (
+              <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-600 shadow-lg">
+                <p className="font-semibold text-zinc-900 mb-1">Rejected</p>
+                <p>{activeApp.rejected_comment}</p>
               </div>
             )}
           </div>

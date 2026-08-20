@@ -109,6 +109,7 @@ export async function createApplication(formData: ApplicationFormData) {
       contact_email: validated.contact_email || null,
       on_hold_at: validated.on_hold_at || null,
       on_hold_comment: validated.on_hold_comment || null,
+      rejected_comment: validated.rejected_comment || null,
       notes: validated.notes || null,
       location: validated.location || null,
       contact_name: validated.contact_name || null,
@@ -162,6 +163,7 @@ export async function updateApplication(
       contact_email: validated.contact_email || null,
       on_hold_at: validated.on_hold_at || null,
       on_hold_comment: validated.on_hold_comment || null,
+      rejected_comment: validated.rejected_comment || null,
       notes: validated.notes || null,
       location: validated.location || null,
       contact_name: validated.contact_name || null,
@@ -189,6 +191,7 @@ export async function updateApplicationStatus(
   newStatus: ApplicationStatus,
   onHoldComment?: string,
   onHoldAt?: string,
+  rejectedComment?: string,
 ) {
   const supabase = await createClient();
 
@@ -203,6 +206,8 @@ export async function updateApplicationStatus(
   if (newStatus === 'on_hold') {
     updateData.on_hold_comment = onHoldComment || null;
     updateData.on_hold_at = onHoldAt || null;
+  } else if (newStatus === 'rejected') {
+    updateData.rejected_comment = rejectedComment || null;
   }
 
   const { error: updateError } = await supabase

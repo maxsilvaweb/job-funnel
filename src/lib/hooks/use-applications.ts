@@ -59,16 +59,20 @@ export function useUpdateStatus() {
       status,
       onHoldComment,
       onHoldAt,
+      rejectedComment,
     }: {
       id: string;
       status: ApplicationStatus;
       onHoldComment?: string;
       onHoldAt?: string;
+      rejectedComment?: string;
     }) => {
       const updateData: Partial<Application> = { status };
       if (status === 'on_hold') {
         updateData.on_hold_comment = onHoldComment || null;
         updateData.on_hold_at = onHoldAt || null;
+      } else if (status === 'rejected') {
+        updateData.rejected_comment = rejectedComment || null;
       }
 
       const { error: updateError } = await supabase

@@ -40,6 +40,7 @@ export const applicationSchema = z.object({
   notes: z.string().nullable().optional(),
   on_hold_comment: z.string().nullable().optional(),
   on_hold_at: z.string().nullable().optional(),
+  rejected_comment: z.string().nullable().optional(),
   priority: z.number().min(0).max(5).default(0),
 }).superRefine((data, ctx) => {
   if (data.employment_type === 'permanent') {

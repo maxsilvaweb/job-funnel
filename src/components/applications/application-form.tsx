@@ -66,6 +66,7 @@ function emptyCreateValues(sticky?: Partial<StickyCreateDefaults>) {
     notes: '',
     on_hold_comment: '',
     on_hold_at: '',
+    rejected_comment: 'Reason unknown',
     priority: 0,
   };
 }
@@ -114,6 +115,7 @@ export function ApplicationForm({
       notes: application?.notes ?? '',
       on_hold_comment: application?.on_hold_comment ?? '',
       on_hold_at: application?.on_hold_at ?? '',
+      rejected_comment: application?.rejected_comment || 'Reason unknown',
       priority: application?.priority ?? 0,
     },
     onSubmit: async ({ value }) => {
@@ -698,6 +700,37 @@ export function ApplicationForm({
                       rows={6}
                       placeholder="Enter reason for on-hold..."
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            </div>
+          )
+        }
+      </form.Subscribe>
+
+      {/* Rejected Section */}
+      <form.Subscribe selector={(state) => state.values.status}>
+        {(status) =>
+          status === 'rejected' && (
+            <div className="space-y-4">
+              <form.Field name="rejected_comment">
+                {(field) => (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+                      Rejected Reason / Comment
+                    </label>
+                    <textarea
+                      value={field.state.value ?? ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onFocus={(e) => {
+                        if (e.target.value === 'Reason unknown') {
+                          field.handleChange('');
+                        }
+                      }}
+                      rows={4}
+                      placeholder="Enter reason for rejection..."
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                     />
                   </div>
                 )}
